@@ -1076,8 +1076,10 @@
       let aiResult = null;
 
       if (apiKey) {
-        const systemPrompt = `You are the RGS AI Executive Sales Mentor for Account Executives.
-Analyze the provided notes, discount justification, and precise transaction details. Evaluate the deal against the 6 MEDDPICC Justification Pillars:
+        const systemPrompt = `You are the ultimate RGS AI Executive Sales Coach and Mentor for Account Executives.
+Provide an extremely detailed, highly strategic, and actionable sales operations coaching output. Do not speak in brief high-level bullet points. Provide detailed contextual advice based on the provided notes, SKUs, and overrides.
+
+Evaluate the deal against the 6 MEDDPICC Justification Pillars:
 1. Give-and-Take (concessions, multi-year, base+options)
 2. Strategic Value (P2P call, J6 briefing, case study)
 3. Competitive Intel (VMware takeout, OpenShift/Tanzu blocker)
@@ -1085,12 +1087,12 @@ Analyze the provided notes, discount justification, and precise transaction deta
 5. Cost to Serve (air-gapped IL5/6 complexity, attached ProServ SOW)
 6. "No" Consequence (credit card limit, SAT threshold, loss of production footprint)
 
-Provide a unified mentoring summary formatted in safe, clean HTML (no markdown codeblocks) to inject into a div. Use <ul>, <li>, and <strong> tags.
-The mentoring MUST cover:
-1. Deal Health (How the deal looks right now).
-2. What You Need to Go Get (Exact missing info: budget, KO name, competitive proof).
-3. Approval Readiness (Is it ready for leadership approval or not).
-4. Formal Approval Statement (A short paragraph the AE can copy to leadership).`;
+Provide a unified mentoring summary formatted in safe, clean HTML (no markdown codeblocks) to inject into a div. Use headings like <h4 class="text-rgs-teal font-bold mb-1 mt-3">, <ul>, <li class="mb-1.5">, and <strong> tags.
+Your coaching output must be deep, highly authoritative, and cover:
+1. Deal Health Diagnostic: Provide a comprehensive and critical health assessment of the current grading, risk score, and missing MEDDPICC pillars.
+2. Strategic Action Plan ("What to Go Get"): Give precise, step-by-step instructions on what specific facts, metrics, and relationships the rep must capture next (including named Contracting Officers, budget details, and validated timelines).
+3. Tactical Positioning & Competitive Objection Playbook: Provide real verbal coaching and word-for-word pitch scripts tailored to the customer's agency, direct/indirect motion, and competitors (especially Red Hat OpenShift, VMware Tanzu, or standard Linux). Explain the "Why" behind positioning Rancher's federal security baseline (FIPS-140-3, air-gapped IL6 support).
+4. Leadership Approval Readiness Memo: Deliver a formal, beautifully structured proposal justification that the AE can immediately copy and paste to John Hodges (VP of Sales) for discount escalation/approval.`;
 
         const payload = {
           contents: [{ parts: [{ text: `Opportunity: ${oppName}\nAE: ${aeName}\nSales Motion: ${motion}\nPoP Start Range: ${popRange}\nPoP Duration: ${popDuration}\nTotal List Value: $${totalList.toFixed(2)}\nTotal Net Value: $${totalNet.toFixed(2)}\nEffective Discount: ${avgDiscountNum.toFixed(1)}%\nQualification Overrides:\n - Funding Verified: ${chkFundingOverride}\n - Hard Next Step Locked: ${chkNextStepOverride}\n - SE Tech Win Approved: ${chkSeWinOverride}\n\nSKU Line Items Details:\n${JSON.stringify(skuLineDetails, null, 2)}\n\nOpportunity Notes & Justification:\n${oppNotesText}` }] }],
@@ -1256,29 +1258,105 @@ The mentoring MUST cover:
             </div>
           `;
         } else {
-          coachBox.innerHTML = `
-            <div class="space-y-4 text-sm text-gray-300">
-              <div>
-                <h4 class="text-rgs-teal font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-stethoscope text-xs"></i> Deal Health Diagnostic</h4>
-                <p>This opportunity is currently rated at <strong class="text-white">${grade === 'A' ? 'GRADE A (Passing)' : grade === 'B' ? 'GRADE B (Requires Escalation)' : 'GRADE F (Rejected)'}</strong>. Based on automatic text-parsing, your opportunity has satisfied <strong class="text-white">${pillarCount} of 6 MEDDPICC pillars</strong>.</p>
+          // Comprehensive Offline Fallback Coaching Output (Detailed, deep, and authoritative)
+          const competitiveThreatText = textLower.includes('openshift') || textLower.includes('red hat') || textLower.includes('redhat')
+            ? `Our technical win team notes active Red Hat OpenShift resistance. Red Hat's ELA structures are massive but heavy. We must position Rancher as the lightweight, multi-cluster control plane that supports vanilla K8s at the tactical edge.`
+            : `No major direct Kubernetes competitor explicitly declared. Watch out for passive resistance or VMware lock-in. Ask the customer: "What happens to your active cluster operations if your legacy hypervisor license structures triple in cost?"`;
+
+          const fallbackHtml = `
+            <div class="space-y-4 text-xs text-gray-300">
+
+              <!-- SECTION 1: DEAL HEALTH DIAGNOSTIC -->
+              <div class="border-b border-gray-800 pb-3">
+                <h4 class="text-rgs-teal font-bold text-sm mb-1.5 flex items-center gap-2">
+                  <i class="fa-solid fa-square-poll-vertical text-xs"></i> 1. Deal Health Diagnostic & Policy Assessment
+                </h4>
+                <p class="mb-2 leading-relaxed">
+                  Opportunity <strong class="text-white">${oppName}</strong> is evaluated at <strong class="text-white">GRADE ${grade}</strong> with a Deal Risk Score of <strong class="text-white">${riskScore}/100</strong>.
+                  Based on deterministic standard checks, we have semantically reconciled <strong class="text-white">${pillarCount} of 6 MEDDPICC justification pillars</strong>.
+                </p>
+                <p class="leading-relaxed">
+                  ${isUnfunded ? '<strong class="text-rgs-crimson">CRITICAL ALIGNMENT GAPS:</strong> Unfunded deal indicators are active. Without pre-allocated budget lines, this deal remains highly speculative and at risk of slip.' : ''}
+                  ${!rule1Pass ? '<strong class="text-rgs-crimson">SCHEDULING WARNING:</strong> No hard chronological date is locked in for next-step actions. Verbal interest must be cemented with a defined calendar target.' : ''}
+                  ${hasOverCapLine && !isProratedPoP ? '<strong class="text-rgs-gold">POLICY COMPLIANCE ALERT:</strong> Your requested discount exceeds standard caps. This is a non-standard concession that requires strong technical or financial justifications to be reviewed by Sales Ops and leadership.' : '<strong>POLICY STATUS:</strong> Under-cap standard pricing or safely prorated duration rules apply to this deal structure.'}
+                </p>
               </div>
-              <div>
-                <h4 class="text-rgs-gold font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-xs"></i> Strategic Action Plan (What to Go Get)</h4>
-                <ul class="list-disc pl-5 space-y-1 text-xs">
-                  ${!rule1Pass ? '<li class="text-rgs-crimson font-bold">Lock in a hard next-step date (such as a calendar event or contracting milestone) and name your Contracting Officer. Currently marked as vague next steps.</li>' : '<li>Next-step hard date validation is secure.</li>'}
-                  ${isUnfunded ? '<li class="text-rgs-crimson font-bold">Secure a committed funding / budget confirmation. Explicit unfunded remarks are detected in your logs.</li>' : '<li>Funding secured validation completed.</li>'}
-                  ${hasOverCapLine && !isProratedPoP ? '<li class="text-rgs-crimson font-bold">Justify above-standard discount! Your discount exceeds Rancher\'s standard caps. Highlight specific Give-and-Take terms.</li>' : ''}
-                  ${pillarCount < 4 ? '<li>Close MEDDPICC intelligence gaps. Focus on demonstrating competitive blockers against VMware/RedHat, or establishing expansion vectors.</li>' : '<li>Your deal displays healthy MEDDPICC justification metrics.</li>'}
+
+              <!-- SECTION 2: STRATEGIC ACTION PLAN ("WHAT TO GO GET") -->
+              <div class="border-b border-gray-800 pb-3">
+                <h4 class="text-rgs-teal font-bold text-sm mb-1.5 flex items-center gap-2">
+                  <i class="fa-solid fa-route text-xs"></i> 2. Strategic Action Plan ("What to Go Get")
+                </h4>
+                <p class="mb-2 leading-relaxed">To maximize deal readiness and clear this opportunity for a passing evaluation, the AE must execute the following tactical discoveries:</p>
+                <ul class="list-decimal pl-5 space-y-2 leading-relaxed">
+                  <li>
+                    <strong>Lock in high-value chronological dates:</strong>
+                    ${!rule1Pass ? 'Do not accept "reviewing soon". Arrange a formalized, technical agenda-driven review meeting with Contracting Officer (Sarah Jenkins or equivalents) before Friday. Place a concrete placeholder on their calendar.' : 'Chronological milestone dates are verified and validated.'}
+                  </li>
+                  <li>
+                    <strong>Identify exact federal funding vehicles:</strong>
+                    ${isUnfunded ? 'You must explicitly uncover the exact funding line item. Is it fallout money? Program of Record funds? Or credit card limit? Obtain direct confirmation from the budget holder.' : 'Funding source validation is successfully secured.'}
+                  </li>
+                  <li>
+                    <strong>Strengthen MEDDPICC justification criteria:</strong>
+                    ${pillarCount < 4 ? 'Focus on demonstrating solid <strong>Give-and-Take</strong> terms (such as multi-year base + options) and attaching paid <strong>Consulting Services</strong> SOWs to mitigate complex delivery overhead in air-gapped IL6 command centers.' : 'MEDDPICC criteria are strongly documented.'}
+                  </li>
                 </ul>
               </div>
-              <div class="p-3 bg-rgs-slate border border-gray-700 rounded text-xs space-y-1">
-                <h4 class="text-white font-bold flex items-center gap-1.5"><i class="fa-solid fa-file-signature text-xs"></i> Leadership Review Memo & Formal Approval Statement</h4>
-                <p class="text-gray-400 italic">"Opportunity ${oppName} is currently graded as ${grade}. Standard discount checks completed. ${grade === 'A' ? 'Cleared for regular progression.' : 'Requires VP concession review due to specific policy flags.'}"</p>
-                <button onclick="copyToClipboard(this.nextElementSibling.innerText, 'Memo Copied!')" class="mt-2 text-[10px] bg-rgs-teal/20 text-rgs-teal hover:bg-rgs-teal hover:text-rgs-navy px-2 py-0.5 rounded font-bold transition">Copy Formal Statement</button>
-                <span class="hidden">FORMAL MEMO: AE ${aeName} requests standard approval for ${oppName} at effective discount of ${avgDiscountNum.toFixed(1)}%. Deterministic Grade is ${grade} with risk score ${riskScore}/100. MEDDPICC score is ${pillarCount}/6. Ready action: ${forecast}.</span>
+
+              <!-- SECTION 3: TACTICAL POSITIONING & PLAYBOOK -->
+              <div class="border-b border-gray-800 pb-3">
+                <h4 class="text-rgs-teal font-bold text-sm mb-1.5 flex items-center gap-2">
+                  <i class="fa-solid fa-chess-knight text-xs"></i> 3. Tactical Positioning & Competitive Playbook
+                </h4>
+                <div class="space-y-2 leading-relaxed">
+                  <p><strong>Competitive Intelligence Matrix:</strong> ${competitiveThreatText}</p>
+                  <p><strong>Value-First Verbal Transition Script (Mission Pivot):</strong></p>
+                  <div class="p-2.5 bg-rgs-navy rounded border border-gray-800 italic text-gray-300 text-[11px] font-mono leading-normal">
+                    "Sarah, we recognize that acquiring additional software baselines can be complex. However, we aren't simply discussing container orchestration licenses for ${oppName}; we are ensuring your pilots have real-time FIPS-validated telemetry data at the tactical edge without incurring massive configuration and engineering hours. Let's align on securing your multi-year software baseline to prevent operational gaps and secure custom VP-authorized concessions."
+                  </div>
+                </div>
               </div>
+
+              <!-- SECTION 4: LEADERSHIP APPROVAL MEMO -->
+              <div class="p-3 bg-rgs-slate/80 border border-gray-700 rounded space-y-2">
+                <div class="flex justify-between items-center">
+                  <h4 class="text-white font-bold text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-signature text-xs text-rgs-teal"></i> 4. Leadership Justification Memo (Copy-Paste)
+                  </h4>
+                  <button onclick="copyToClipboard(this.parentElement.nextElementSibling.innerText, 'Memo Copied!')" class="text-[9px] bg-rgs-teal/20 text-rgs-teal hover:bg-rgs-teal hover:text-rgs-navy px-2 py-0.5 rounded font-bold transition">
+                    <i class="fa-solid fa-copy"></i> Copy Memo
+                  </button>
+                </div>
+                <div class="p-2.5 bg-rgs-navy rounded border border-gray-800 font-mono text-[10px] text-gray-300 leading-normal max-h-40 overflow-y-auto custom-scrollbar">
+MEMORANDUM FOR SALES OPERATIONS AND VP OF SALES (John Hodges)
+
+SUBJECT: Discount and Policy Exception Request - Opportunity: ${oppName}
+
+1. OVERVIEW: AE ${aeName || '[AE Name]'} requests formal policy concession/approval for "${oppName}" supporting the active program footprint.
+   - Total Price List: $${totalList.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+   - Proposed Net Total: $${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+   - Requested Effective Discount: ${avgDiscountNum.toFixed(1)}%
+   - Sales Motion Path: ${motion}
+
+2. AUDIT GRADE & RISK ASSESSMENT:
+   - Deterministic Grade: GRADE ${grade}
+   - Deal Risk Score: ${riskScore}/100
+   - PoP Range Parameters: Start = ${popRange}; Duration = ${popDuration}
+   - MEDDPICC Pillars Satisfied: ${pillarCount}/6
+
+3. STRATEGIC JUSTIFICATION & CONCESSIONS:
+   - Give-and-Take Concessions: ${pillarPassArray[0] ? 'Yes - multi-year baseline or base+options terms have been validated.' : 'Pending - currently working to secure multi-year baselines.'}
+   - Delivery / Complexity Mitigation: ${pillarPassArray[4] ? 'Professional Services (ProServ) SOW complexity has been fully integrated.' : 'No additional delivery complexity detected.'}
+   - Active Notes Context: "${oppNotesText.slice(0, 200)}..."
+
+Please review and authorize this exception to clear the opportunity for quote release and progression.
+                </div>
+              </div>
+
             </div>
           `;
+          coachBox.innerHTML = fallbackHtml;
         }
       }
 
