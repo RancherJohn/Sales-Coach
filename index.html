@@ -1060,6 +1060,16 @@
 
       const isProratedPoP = popDuration === 'Under12mo' || textLower.includes('prorat') || textLower.includes('coterm') || textLower.includes('co-term');
 
+      // Aggregate all SKU detail line items for the AI context
+      const skuLineDetails = [];
+      rows.forEach(row => {
+        const type = row.querySelector('.sku-type')?.value || 'RGS Cloud Suite';
+        const qty = parseFloat(row.querySelector('.sku-qty')?.value) || 0;
+        const price = parseFloat(row.querySelector('.sku-price')?.value) || 0;
+        const disc = parseFloat(row.querySelector('.sku-disc')?.value) || 0;
+        skuLineDetails.push({ type, qty, listPrice: price, discountPercent: disc, netPrice: qty * price * (1 - (disc / 100)) });
+      });
+
       // Attempt AI Content generation
       const apiKey = localStorage.getItem('geminiApiKey') || '';
       const selectedModel = document.getElementById('geminiModel')?.value || 'gemini-1.5-flash';
@@ -1067,7 +1077,7 @@
 
       if (apiKey) {
         const systemPrompt = `You are the RGS AI Executive Sales Mentor for Account Executives.
-Analyze the provided notes and discount justification. Evaluate the deal against the 6 MEDDPICC Justification Pillars:
+Analyze the provided notes, discount justification, and precise transaction details. Evaluate the deal against the 6 MEDDPICC Justification Pillars:
 1. Give-and-Take (concessions, multi-year, base+options)
 2. Strategic Value (P2P call, J6 briefing, case study)
 3. Competitive Intel (VMware takeout, OpenShift/Tanzu blocker)
@@ -1083,7 +1093,7 @@ The mentoring MUST cover:
 4. Formal Approval Statement (A short paragraph the AE can copy to leadership).`;
 
         const payload = {
-          contents: [{ parts: [{ text: `Opportunity: ${oppName}\nAE: ${aeName}\nSales Motion: ${motion}\nPoP Duration: ${popDuration}\nEffective Discount: ${avgDiscountNum.toFixed(1)}%\nNotes:\n${oppNotesText}` }] }],
+          contents: [{ parts: [{ text: `Opportunity: ${oppName}\nAE: ${aeName}\nSales Motion: ${motion}\nPoP Start Range: ${popRange}\nPoP Duration: ${popDuration}\nTotal List Value: $${totalList.toFixed(2)}\nTotal Net Value: $${totalNet.toFixed(2)}\nEffective Discount: ${avgDiscountNum.toFixed(1)}%\nQualification Overrides:\n - Funding Verified: ${chkFundingOverride}\n - Hard Next Step Locked: ${chkNextStepOverride}\n - SE Tech Win Approved: ${chkSeWinOverride}\n\nSKU Line Items Details:\n${JSON.stringify(skuLineDetails, null, 2)}\n\nOpportunity Notes & Justification:\n${oppNotesText}` }] }],
           systemInstruction: { parts: [{ text: systemPrompt }] },
           generationConfig: {
             responseMimeType: "application/json",
