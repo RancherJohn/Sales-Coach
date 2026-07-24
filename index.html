@@ -1078,22 +1078,22 @@
 
       if (apiKey) {
         const systemPrompt = `You are the ultimate RGS AI Executive Sales Coach and Mentor for Account Executives.
-Provide an extremely detailed, highly strategic, and actionable sales operations coaching output. Do not speak in brief high-level bullet points. Provide detailed contextual advice based on the provided notes, SKUs, and overrides.
+Analyze the opportunity and output a valid JSON object matching the requested schema precisely.
 
-Evaluate the deal against the 6 MEDDPICC Justification Pillars:
-1. Give-and-Take (concessions, multi-year, base+options)
-2. Strategic Value (P2P call, J6 briefing, case study)
-3. Competitive Intel (VMware takeout, OpenShift/Tanzu blocker)
-4. Expansion Potential (dev/test to production, NeuVector, 12-24 mo roadmap)
-5. Cost to Serve (air-gapped IL5/6 complexity, attached ProServ SOW)
-6. "No" Consequence (credit card limit, SAT threshold, loss of production footprint)
+Evaluate the deal notes critically against each of the 6 MEDDPICC Justification Pillars:
+1. Give-and-Take (multi-year concessions, base+options terms, concessions to fit pilot budget)
+2. Strategic Value (peer-to-peer validation, J6 briefings, case studies, architectural/technical reviews)
+3. Competitive Intel (VMware hypervisor takeover, Red Hat OpenShift/Tanzu blocker, beating existing agreements)
+4. Expansion Potential (dev/test environment to production scaling, NeuVector, Harvester pilot, 12-24 month roadmap)
+5. Cost to Serve (complex air-gapped IL5/6 environments, attached Professional Services/Consulting SOW, FIPS requirements)
+6. "No" Consequence (credit card limit restrictions, SAT threshold limit, loss of production footprint, duration co-term bounds)
 
-Provide a unified mentoring summary formatted in safe, clean HTML (no markdown codeblocks) to inject into a div. Use headings like <h4 class="text-rgs-teal font-bold mb-1 mt-3">, <ul>, <li class="mb-1.5">, and <strong> tags.
-Your coaching output must be deep, highly authoritative, and cover:
-1. Deal Health Diagnostic: Provide a comprehensive and critical health assessment of the current grading, risk score, and missing MEDDPICC pillars.
-2. Strategic Action Plan ("What to Go Get"): Give precise, step-by-step instructions on what specific facts, metrics, and relationships the rep must capture next (including named Contracting Officers, budget details, and validated timelines).
-3. Tactical Positioning & Competitive Objection Playbook: Provide real verbal coaching and word-for-word pitch scripts tailored to the customer's agency, direct/indirect motion, and competitors (especially Red Hat OpenShift, VMware Tanzu, or standard Linux). Explain the "Why" behind positioning Rancher's federal security baseline (FIPS-140-3, air-gapped IL6 support).
-4. Leadership Approval Readiness Memo: Deliver a formal, beautifully structured proposal justification that the AE can immediately copy and paste to John Hodges (VP of Sales) for discount escalation/approval.`;
+For each of the 6 pillars in order (indices 0 to 5), determine if it has passed (set the boolean 'passed' value to true or false) based on the AE's notes or qualifiers, and provide your detailed reasoning explaining why it passed or failed based on the AE notes.
+Also provide a deep, highly strategic, and actionable sales operations coaching text inside 'coachingMentorshipHtml', formatted with safe HTML tags (like <ul>, <li>, <strong>, <h4 class="text-rgs-teal font-bold mb-1 mt-3">). Do not use markdown backticks in 'coachingMentorshipHtml'.
+
+The output MUST be a single valid JSON object containing:
+- 'meddpiccPillars': An array of exactly 6 objects, each with 'passed' (boolean) and 'reasoning' (string).
+- 'coachingMentorshipHtml': An HTML formatted string containing Deal Health Diagnostic, Strategic Action Plan ("What to Go Get"), Tactical Positioning & Competitive Objection Playbook, and a Leadership Approval Memo.`;
 
         const payload = {
           contents: [{ parts: [{ text: `Opportunity: ${oppName}\nAE: ${aeName}\nSales Motion: ${motion}\nPoP Start Range: ${popRange}\nPoP Duration: ${popDuration}\nTotal List Value: $${totalList.toFixed(2)}\nTotal Net Value: $${totalNet.toFixed(2)}\nEffective Discount: ${avgDiscountNum.toFixed(1)}%\nQualification Overrides:\n - Funding Verified: ${chkFundingOverride}\n - Hard Next Step Locked: ${chkNextStepOverride}\n - SE Tech Win Approved: ${chkSeWinOverride}\n\nSKU Line Items Details:\n${JSON.stringify(skuLineDetails, null, 2)}\n\nOpportunity Notes & Justification:\n${oppNotesText}` }] }],
@@ -1130,7 +1130,15 @@ Your coaching output must be deep, highly authoritative, and cover:
           });
           const json = await response.json();
           const responseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (responseText) aiResult = JSON.parse(responseText);
+          if (responseText) {
+            let cleanedText = responseText.trim();
+            const firstBrace = cleanedText.indexOf('{');
+            const lastBrace = cleanedText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+              cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
+            }
+            aiResult = JSON.parse(cleanedText);
+          }
         } catch (err) {
           console.debug("Gemini semantic audit API failed. Fallback engaged.", err);
         }
@@ -1140,20 +1148,38 @@ Your coaching output must be deep, highly authoritative, and cover:
       let pillarPassArray = [false, false, false, false, false, false];
       let pillarExplanations = Array(6).fill('Evaluated via notes');
 
-      if (aiResult && Array.isArray(aiResult.meddpiccPillars)) {
-        aiResult.meddpiccPillars.forEach((p, idx) => {
-          if (idx < 6) {
-            pillarPassArray[idx] = !!p.passed;
-            pillarExplanations[idx] = p.reasoning || 'Evaluated';
+      if (aiResult) {
+        let rawPillars = null;
+        for (const k of Object.keys(aiResult)) {
+          if (k.toLowerCase().includes('pillar') || k.toLowerCase().includes('medd')) {
+            rawPillars = aiResult[k];
+            break;
           }
-        });
-      } else {
-         pillarPassArray[0] = manualPillars[0] || textLower.includes('base +') || isProratedPoP || textLower.includes('give-and-take') || textLower.includes('option');
-         pillarPassArray[1] = manualPillars[1] || textLower.includes('p2p') || textLower.includes('reference') || textLower.includes('strategic value') || textLower.includes('case study');
-         pillarPassArray[2] = manualPillars[2] || textLower.includes('openshift') || textLower.includes('vmware takeout') || textLower.includes('competit') || textLower.includes('red hat');
-         pillarPassArray[3] = manualPillars[3] || textLower.includes('dev to prod') || textLower.includes('expansion') || textLower.includes('roadmap') || textLower.includes('neuvector');
-         pillarPassArray[4] = manualPillars[4] || textLower.includes('proserv') || textLower.includes('sow') || textLower.includes('cost to serve');
-         pillarPassArray[5] = manualPillars[5] || textLower.includes('credit card') || textLower.includes('sat limit') || isProratedPoP || textLower.includes('consequence');
+        }
+        if (Array.isArray(rawPillars)) {
+          rawPillars.forEach((p, idx) => {
+            if (idx < 6) {
+              let passedVal = false;
+              if (p.hasOwnProperty('passed')) passedVal = !!p.passed;
+              else if (p.hasOwnProperty('status')) passedVal = p.status === 'passed' || p.status === true || p.status === 'true';
+              else if (p.hasOwnProperty('met')) passedVal = !!p.met;
+
+              pillarPassArray[idx] = passedVal;
+              pillarExplanations[idx] = p.reasoning || p.reason || p.justification || 'Evaluated';
+            }
+          });
+        } else {
+          aiResult = null;
+        }
+      }
+
+      if (!aiResult) {
+         pillarPassArray[0] = manualPillars[0] || textLower.includes('base +') || isProratedPoP || textLower.includes('give-and-take') || textLower.includes('option') || textLower.includes('concession') || textLower.includes('discount request') || textLower.includes('requested') || textLower.includes('budget');
+         pillarPassArray[1] = manualPillars[1] || textLower.includes('p2p') || textLower.includes('reference') || textLower.includes('strategic value') || textLower.includes('case study') || textLower.includes('briefing') || textLower.includes('architectural review') || textLower.includes('technical review') || textLower.includes('verified');
+         pillarPassArray[2] = manualPillars[2] || textLower.includes('openshift') || textLower.includes('vmware takeout') || textLower.includes('competit') || textLower.includes('red hat') || textLower.includes('redhat') || textLower.includes('tanzu') || textLower.includes('beating');
+         pillarPassArray[3] = manualPillars[3] || textLower.includes('dev to prod') || textLower.includes('expansion') || textLower.includes('roadmap') || textLower.includes('neuvector') || textLower.includes('harvester') || textLower.includes('pilot') || textLower.includes('hosts');
+         pillarPassArray[4] = manualPillars[4] || textLower.includes('proserv') || textLower.includes('sow') || textLower.includes('cost to serve') || textLower.includes('air-gapped') || textLower.includes('il6') || textLower.includes('il5') || textLower.includes('fips');
+         pillarPassArray[5] = manualPillars[5] || textLower.includes('credit card') || textLower.includes('sat limit') || isProratedPoP || textLower.includes('consequence') || textLower.includes('limit') || textLower.includes('duration');
 
          pillarExplanations[0] = pillarPassArray[0] ? 'Prorated PoP / multi-year terms detected.' : 'No clear multi-year / Give-and-Take found.';
          pillarExplanations[1] = pillarPassArray[1] ? 'Strategic reference or P2P/J6 validation mentioned.' : 'Strategic customer validation is missing.';
