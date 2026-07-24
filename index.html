@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RGS Sales Assistant & Deal Qualification Tool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            rgs: {
+              navy: '#0b132b',
+              slate: '#1c2541',
+              accent: '#3a506b',
+              teal: '#00b4d8',
+              emerald: '#10b981',
+              gold: '#f59e0b',
+              crimson: '#ef4444',
+              card: '#111827',
+              border: '#1f2937'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Scrollbars & Utilities */
+    body {
+      background-color: #0b132b;
+      color: #f3f4f6;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.75rem;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0b132b;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #3a506b;
+      border-radius: 3px;
+    }
+
+    /* Print Stylesheet */
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+      }
+      header, nav, footer, button, .no-print, #aiTab, #historyTab, #simulatorTab, #scopeTab {
+        display: none !important;
+      }
+      .glass-card {
+        background: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        color: #111827 !important;
+        box-shadow: none !important;
+      }
+      .text-white, .text-gray-200, .text-gray-300, .text-gray-400 {
+        color: #111827 !important;
+      }
+      .bg-rgs-navy, .bg-rgs-slate {
+        background-color: #f3f4f6 !important;
+        border-color: #d1d5db !important;
+      }
+      textarea {
+        border: none !important;
+        background: transparent !important;
+        color: #111827 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar">
+
+  <header class="bg-rgs-slate/90 border-b border-gray-800 sticky top-0 z-50 backdrop-blur-md px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-tr from-rgs-teal to-rgs-emerald p-2.5 rounded-lg text-rgs-navy font-black text-xl shadow-lg">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-wide text-white">RANCHER GOVERNMENT SOLUTIONS</h1>
+          <p class="text-xs text-rgs-teal font-medium tracking-wider">SALES ASSISTANT & DEAL QUALIFICATION COACH</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 text-xs flex-wrap justify-center gap-y-1">
+        <span class="text-gray-400 hidden lg:inline">Load Sample Deal:</span>
+        <button onclick="loadPreset('caoc')" class="bg-rgs-navy hover:bg-rgs-accent border border-rgs-teal/40 text-rgs-teal px-2.5 py-1.5 rounded transition font-medium">
+          <i class="fa-solid fa-file-invoice text-rgs-gold mr-1"></i> USAF CAOC-X
+        </button>
+        <button onclick="loadPreset('navy')" class="bg-rgs-navy hover:bg-rgs-accent border border-rgs-emerald/40 text-rgs-emerald px-2.5 py-1.5 rounded transition font-medium">
+          <i class="fa-solid fa-check-circle mr-1"></i> USN NAVSEA
+        </button>
+        <button onclick="loadPreset('direct')" class="bg-rgs-navy hover:bg-rgs-accent border border-rgs-crimson/40 text-rgs-crimson px-2.5 py-1.5 rounded transition font-medium">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> Direct Custom
+        </button>
+
+        <div class="h-4 w-[1px] bg-gray-700 mx-1 hidden sm:block"></div>
+
+        <button onclick="clearDealForm()" class="bg-rgs-navy hover:bg-rgs-crimson/30 text-rgs-crimson px-2.5 py-1.5 rounded border border-rgs-crimson/40 transition font-medium flex items-center space-x-1">
+          <i class="fa-solid fa-eraser"></i> <span>Clear Fields</span>
+        </button>
+
+        <button onclick="window.print()" class="bg-rgs-slate hover:bg-rgs-accent text-white px-2.5 py-1.5 rounded border border-gray-700 transition flex items-center space-x-1">
+          <i class="fa-solid fa-print text-rgs-teal"></i> <span class="hidden sm:inline">Export PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="bg-rgs-navy border-b border-gray-800 px-4 lg:px-8">
+    <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto custom-scrollbar">
+      <button onclick="switchTab('auditTab')" id="btn-auditTab" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-rgs-teal text-rgs-teal flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-calculator"></i> <span>Deal Evaluation</span>
+      </button>
+      <button onclick="switchTab('scopeTab')" id="btn-scopeTab" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-list-check"></i> <span>SCOPE SOP Checklist</span>
+      </button>
+      <button onclick="switchTab('policyTab')" id="btn-policyTab" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-book-bookmark"></i> <span>RGS Policy Matrix</span>
+      </button>
+      <button onclick="switchTab('aiTab')" id="btn-aiTab" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-brain text-rgs-teal"></i> <span>AI Chat Coach</span>
+      </button>
+      <button onclick="switchTab('historyTab')" id="btn-historyTab" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-clock-rotate-left"></i> <span>Evaluation Log</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-rgs-slate border border-rgs-teal text-white px-4 py-3 rounded-lg shadow-2xl flex items-center space-x-3 pointer-events-none">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-rgs-emerald text-lg"></i>
+    <span id="toastMsg" class="text-sm font-medium">Notification message</span>
+  </div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+
+    <!-- TAB 1: DEAL EVALUATION -->
+    <section id="auditTab" class="tab-content block space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT SIDE: Input Form (5 Cols) -->
+        <div class="lg:col-span-5 glass-card p-5 space-y-4">
+          <div class="border-b border-gray-800 pb-3 flex justify-between items-center">
+            <h2 class="font-bold text-base text-white flex items-center gap-2">
+              <i class="fa-solid fa-pen-to-square text-rgs-teal"></i> Deal Details Input
+            </h2>
+            <button type="button" onclick="clearDealForm()" class="text-xs bg-rgs-navy hover:bg-rgs-crimson/20 text-rgs-crimson border border-rgs-crimson/40 px-2 py-1 rounded transition font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left"></i> Clear
+            </button>
+          </div>
+
+          <form id="auditForm" onsubmit="runDealAudit(event)" class="space-y-4 text-xs">
+            <div>
+              <label class="block font-medium text-gray-300 mb-1">Opportunity / Program Name *</label>
+              <input type="text" id="oppName" required placeholder="e.g. Agency_Command_Program" class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-white focus:border-rgs-teal focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-gray-300 mb-1">Account Executive (AE)</label>
+                <input type="text" id="aeName" placeholder="Account Executive" class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-white focus:border-rgs-teal focus:outline-none">
+              </div>
+              <div>
+                <label class="block font-medium text-gray-300 mb-1">Sales Motion (Deal Type) *</label>
+                <select id="salesMotion" onchange="updateDiscountCapNote()" class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-white focus:border-rgs-teal focus:outline-none">
+                  <option value="Direct">Direct (VP Sales Approved)</option>
+                  <option value="Disti-Std">Distribution Standard (No DR)</option>
+                  <option value="Disti-DR1">Distribution DR1 (Fulfill)</option>
+                  <option value="Disti-DR2">Distribution DR2 (Sell With)</option>
+                  <option value="Reseller-Std" selected>Aggregator / Reseller Direct Standard (No DR)</option>
+                  <option value="Reseller-DR1">Aggregator / Reseller Direct DR1 (Fulfill)</option>
+                  <option value="Reseller-DR2">Aggregator / Reseller Direct DR2 (Sell With)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- SKU Catalog & Calculator -->
+            <div class="border border-gray-800 rounded p-3 bg-rgs-navy/60 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-gray-200 flex items-center gap-1 text-xs">
+                  <i class="fa-solid fa-boxes-stacked text-rgs-teal"></i> SKU Line Item Calculator
+                </span>
+                <button type="button" onclick="addSkuLine()" class="text-[10px] bg-rgs-teal/20 text-rgs-teal hover:bg-rgs-teal hover:text-rgs-navy px-2 py-0.5 rounded font-bold transition">
+                  + Add Item
+                </button>
+              </div>
+
+              <div class="grid grid-cols-12 gap-1 text-[10px] font-bold text-gray-400 uppercase border-b border-gray-800 pb-1">
+                <span class="col-span-4 font-semibold">Item Type</span>
+                <span class="col-span-2 text-center font-semibold">Qty</span>
+                <span class="col-span-3 font-semibold">List $</span>
+                <span class="col-span-2 font-semibold">Disc %</span>
+                <span class="col-span-1"></span>
+              </div>
+
+              <div id="skuLineContainer" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1"></div>
+
+              <div class="flex flex-wrap justify-between items-center text-[11px] pt-2 border-t border-gray-800 text-gray-300 gap-1">
+                <span>Total List Value: <strong id="calcTotalList" class="text-white">$0.00</strong></span>
+                <span>Effective Disc: <strong id="calcAvgDiscount" class="text-rgs-gold">0.0%</strong></span>
+                <span>Net Total: <strong id="calcNetVal" class="text-rgs-emerald">$0.00</strong></span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-gray-300 mb-1">PoP Start Range</label>
+                <select id="popRange" class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-white focus:border-rgs-teal focus:outline-none">
+                  <option value="Current">Current (Within 14 Days)</option>
+                  <option value="Backdated">Backdated (>14 Days Ago)</option>
+                  <option value="Future">Future (>180 Days Out)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium text-gray-300 mb-1">PoP Duration</label>
+                <select id="popDuration" onchange="recalculateSkuTotals()" class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-white focus:border-rgs-teal focus:outline-none">
+                  <option value="12mo">12 Months (Standard)</option>
+                  <option value="MultiYear">Multi-Year (Base + Options)</option>
+                  <option value="Under12mo">Less than 12 Months (Shortened)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Qualification Overrides -->
+            <div class="border border-gray-800 rounded p-3 bg-rgs-slate/40 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-rgs-teal block text-[11px] uppercase tracking-wider">
+                  <i class="fa-solid fa-sliders mr-1"></i> Qualification Drivers
+                </span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                <label class="flex items-center space-x-2 bg-rgs-navy p-1.5 rounded border border-gray-700 cursor-pointer hover:border-rgs-teal">
+                  <input type="checkbox" id="chkFundingSecured" class="accent-rgs-emerald w-3.5 h-3.5">
+                  <span class="text-gray-200">Funding Verified</span>
+                </label>
+                <label class="flex items-center space-x-2 bg-rgs-navy p-1.5 rounded border border-gray-700 cursor-pointer hover:border-rgs-teal">
+                  <input type="checkbox" id="chkNextStepLocked" class="accent-rgs-teal w-3.5 h-3.5">
+                  <span class="text-gray-200">Hard Next Step Date</span>
+                </label>
+                <label class="flex items-center space-x-2 bg-rgs-navy p-1.5 rounded border border-gray-700 cursor-pointer hover:border-rgs-teal">
+                  <input type="checkbox" id="chkSeWinApproved" class="accent-rgs-emerald w-3.5 h-3.5">
+                  <span class="text-gray-200">SE Tech Win</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Unified Text Area -->
+            <div>
+              <label class="block font-medium text-gray-300 mb-1 flex justify-between items-end">
+                <span><i class="fa-solid fa-file-lines text-rgs-teal mr-1"></i> Opportunity Notes & Justification *</span>
+                <button type="button" onclick="aiAutoExtractNotes()" class="text-[10px] text-rgs-teal hover:underline"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Auto-Fill</button>
+              </label>
+              <textarea id="oppNotes" rows="8" required placeholder="Paste raw meeting minutes, email exchanges, architectural details, discount rationale, competitor threats, and MEDDPICC criteria here..." class="w-full bg-rgs-navy border border-gray-700 rounded p-2 text-xs text-white focus:border-rgs-teal focus:outline-none font-mono custom-scrollbar"></textarea>
+            </div>
+
+            <div class="flex gap-2">
+              <button type="submit" class="flex-1 bg-gradient-to-r from-rgs-teal to-rgs-emerald hover:opacity-90 active:scale-95 text-rgs-navy font-bold py-3 rounded shadow-lg transition-all flex items-center justify-center space-x-2 text-sm">
+                <i class="fa-solid fa-shield-check"></i>
+                <span>EVALUATE DEAL & DISCOUNT</span>
+              </button>
+              <button type="button" onclick="saveAuditToLog()" title="Save Audit to Log" class="bg-rgs-slate hover:bg-rgs-accent text-white px-3 py-3 rounded border border-gray-700 transition">
+                <i class="fa-solid fa-bookmark text-rgs-gold"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- RIGHT SIDE: Simplified AE Mentoring Dashboard (7 Cols) -->
+        <div class="lg:col-span-7 space-y-4">
+
+          <!-- Summary Header Cards (Color-Coded) -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div id="gradeCard" class="p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-slate/90 border-rgs-emerald shadow">
+              <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">DISCOUNT GRADE</span>
+              <div class="flex items-baseline space-x-2 my-1">
+                <span id="resGrade" class="text-3xl font-black text-rgs-emerald">GRADE A</span>
+                <span id="resStatusBadge" class="text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-emerald/20 text-rgs-emerald border-rgs-emerald/30">PASSING</span>
+              </div>
+              <span id="resGradeSub" class="text-[11px] text-gray-300">0 Escalation Flags</span>
+            </div>
+
+            <div id="forecastCard" class="p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-slate/90 border-rgs-emerald shadow">
+              <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">FORECAST ACTION</span>
+              <div class="my-1">
+                <span id="resForecast" class="text-base font-extrabold uppercase text-rgs-emerald">Ready to move to next stage</span>
+              </div>
+              <span id="resForecastSub" class="text-[11px] text-gray-300">Ready for Evaluation</span>
+            </div>
+
+            <div id="riskCard" class="p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-slate/90 border-rgs-emerald shadow">
+              <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">DEAL RISK SCORE</span>
+              <div class="my-1 flex items-baseline space-x-2">
+                <span id="resRiskScore" class="text-3xl font-black text-rgs-emerald">0/100</span>
+                <span id="resRiskLabel" class="text-xs font-bold text-rgs-emerald">LOW RISK</span>
+              </div>
+              <span id="resRiskSub" class="text-[11px] text-gray-300">Standard Policy</span>
+            </div>
+          </div>
+
+          <!-- 6-Pillar MEDDPICC Score Grid (Evaluated via Gemini 3 Flash) -->
+          <div class="glass-card p-4 space-y-3">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+              <h3 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-cubes text-rgs-teal"></i> 6-Pillar MEDDPICC Justification Rubric
+              </h3>
+              <span id="meddPillarCountTag" class="text-[10px] font-bold text-rgs-teal bg-rgs-navy px-2 py-0.5 rounded border border-rgs-teal/30">
+                0 / 6 Pillars Met
+              </span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs" id="meddpiccGrid">
+              <!-- Populated dynamically via JS / Gemini LLM -->
+            </div>
+            <p class="text-[10px] text-gray-500 italic mt-2 text-center">Pillars are semantically evaluated by Gemini based on notes. Click a pillar to manually override.</p>
+          </div>
+
+          <!-- UNIFIED OUTPUT: AI Executive Sales Mentor -->
+          <div class="glass-card p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-user-tie text-rgs-teal"></i> AI Executive Sales Mentor
+              </h3>
+              <button onclick="copyCoachOutput()" class="bg-rgs-slate hover:bg-rgs-accent text-xs px-2.5 py-1.5 rounded text-gray-300 border border-gray-700 transition flex items-center space-x-1">
+                <i class="fa-solid fa-copy text-rgs-teal"></i> <span>Copy Feedback</span>
+              </button>
+            </div>
+
+            <!-- Consolidated Mentoring Content Area -->
+            <div id="coachGuidanceBox" class="bg-rgs-navy/90 p-4 rounded-lg border border-gray-800 text-sm text-gray-300 space-y-4 leading-relaxed custom-scrollbar max-h-[400px] overflow-y-auto">
+              <p class="text-gray-400 italic text-center py-6">
+                Complete the input form and click <strong class="text-rgs-teal">"EVALUATE DEAL & DISCOUNT"</strong> to get mentoring on deal health, missing intelligence, and approval readiness.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: SCOPE SOP CHECKLIST -->
+    <section id="scopeTab" class="tab-content hidden space-y-6">
+      <div class="glass-card p-6 space-y-6">
+        <div class="border-b border-gray-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-rgs-teal"></i> RGS Sales Order Processing SCOPE Checklist
+            </h2>
+            <p class="text-xs text-gray-400">Mandatory verification steps before advancing opportunities to Order Submitted.</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs text-gray-400">Order Ready:</span>
+            <span id="scopeProgressText" class="text-sm font-bold text-rgs-teal">0 / 14</span>
+            <button onclick="copyScopeMemo()" class="bg-rgs-teal hover:bg-rgs-teal/80 text-rgs-navy text-xs font-bold px-3 py-1.5 rounded transition">
+              <i class="fa-solid fa-copy mr-1"></i> Copy Chatter Memo
+            </button>
+          </div>
+        </div>
+
+        <div class="flex space-x-2 text-xs border-b border-gray-800 pb-3 overflow-x-auto custom-scrollbar">
+          <button onclick="filterScope('all')" id="btn-scope-all" class="scope-filter-btn px-3 py-1 rounded bg-rgs-teal text-rgs-navy font-bold">All Items</button>
+          <button onclick="filterScope('po')" id="btn-scope-po" class="scope-filter-btn px-3 py-1 rounded bg-rgs-slate text-gray-300 border border-gray-700">PO & Quote</button>
+          <button onclick="filterScope('account')" id="btn-scope-account" class="scope-filter-btn px-3 py-1 rounded bg-rgs-slate text-gray-300 border border-gray-700">Account Hierarchy</button>
+          <button onclick="filterScope('compliance')" id="btn-scope-compliance" class="scope-filter-btn px-3 py-1 rounded bg-rgs-slate text-gray-300 border border-gray-700">Approvals</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="scopeChecklistGrid"></div>
+
+        <div class="p-4 bg-rgs-navy rounded border border-rgs-teal/30 flex justify-between items-center">
+          <div>
+            <h4 class="font-bold text-xs text-white">Submitting PO or Modification?</h4>
+            <p class="text-xs text-gray-400">Send POs to orders@ranchergovernment.com. ProServ requires executed quote & SOW.</p>
+          </div>
+          <button onclick="resetScopeChecklist()" class="bg-rgs-slate hover:bg-rgs-accent text-xs px-3 py-1.5 rounded text-gray-300 border border-gray-700">Reset Checklist</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: RGS POLICY MATRIX -->
+    <section id="policyTab" class="tab-content hidden space-y-6">
+      <div class="glass-card p-6 space-y-6">
+        <div class="border-b border-gray-800 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-table-list text-rgs-teal"></i> RGS Sales Operations Policy Matrix
+            </h2>
+          </div>
+          <input type="text" id="policySearch" onkeyup="searchPolicyTable()" placeholder="Search policy..." class="bg-rgs-navy border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:border-rgs-teal focus:outline-none">
+        </div>
+        <div class="space-y-6 text-xs">
+          <div>
+            <h3 class="font-bold text-sm text-rgs-teal mb-2">1. Price Book Discounts (Standard Caps)</h3>
+            <div class="overflow-x-auto rounded border border-gray-800">
+              <table id="discountMatrixTable" class="w-full text-left bg-rgs-navy">
+                <thead class="bg-rgs-slate text-gray-300 uppercase text-[10px]">
+                  <tr>
+                    <th class="p-2.5">Product Line</th>
+                    <th class="p-2.5">Sales Motion</th>
+                    <th class="p-2.5">Product Std %</th>
+                    <th class="p-2.5">Prem Serv %</th>
+                    <th class="p-2.5">ProServ %</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800 text-gray-300" id="discountMatrixBody">
+                  <!-- Will be rendered dynamically based on DISCOUNT_TABLES -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-rgs-teal mb-2">2. Mandatory Approval Authority</h3>
+            <div class="overflow-x-auto rounded border border-gray-800">
+              <table id="approvalMatrixTable" class="w-full text-left bg-rgs-navy">
+                <thead class="bg-rgs-slate text-gray-300 uppercase text-[10px]">
+                  <tr>
+                    <th class="p-2.5">Trigger Condition</th>
+                    <th class="p-2.5">Threshold</th>
+                    <th class="p-2.5">Approval Required From</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800 text-gray-300" id="approvalMatrixBody">
+                  <tr class="hover:bg-rgs-slate/50">
+                    <td class="p-2.5 font-bold text-white">Discount Exceeds Standard Cap</td>
+                    <td class="p-2.5">> policy standard threshold cap %</td>
+                    <td class="p-2.5 text-rgs-gold font-bold">VP of Sales</td>
+                  </tr>
+                  <tr class="hover:bg-rgs-slate/50">
+                    <td class="p-2.5 font-bold text-white">Direct Deal Motion</td>
+                    <td class="p-2.5">Any direct customer sales motion</td>
+                    <td class="p-2.5">VP of Sales (Direct Deal Approval required)</td>
+                  </tr>
+                  <tr class="hover:bg-rgs-slate/50">
+                    <td class="p-2.5 font-bold text-white">Reseller Direct (Aggregators)</td>
+                    <td class="p-2.5">Bypasses a traditional distributor</td>
+                    <td class="p-2.5">VP Ecosystems / Dir Channels</td>
+                  </tr>
+                  <tr class="hover:bg-rgs-slate/50">
+                    <td class="p-2.5 font-bold text-white">Period of Performance (Shortened)</td>
+                    <td class="p-2.5">Duration < 12 months</td>
+                    <td class="p-2.5 text-rgs-gold font-bold">VP of Sales</td>
+                  </tr>
+                  <tr class="hover:bg-rgs-slate/50">
+                    <td class="p-2.5 font-bold text-white">Backdated Period of Performance</td>
+                    <td class="p-2.5">PoP Start Date > 14 days ago</td>
+                    <td class="p-2.5 text-rgs-crimson font-bold">VP Operations & Sales Leadership</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: AI CHAT COACH -->
+    <section id="aiTab" class="tab-content hidden space-y-6">
+      <div class="glass-card p-6 space-y-4">
+        <div class="border-b border-gray-800 pb-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-brain text-rgs-teal"></i> RGS AI Chat Coach
+            </h2>
+            <p class="text-xs text-gray-400">Ask questions about RGS policy, request custom rep scripts, or analyze deal scenarios.</p>
+          </div>
+          <!-- API Config Panel -->
+          <div class="flex items-center space-x-2 text-xs">
+            <input type="password" id="geminiApiKey" placeholder="Gemini API Key" class="bg-rgs-navy border border-gray-700 rounded px-2 py-1.5 text-white focus:border-rgs-teal focus:outline-none w-36">
+            <select id="geminiModel" class="bg-rgs-navy border border-gray-700 rounded px-2 py-1.5 text-white focus:border-rgs-teal focus:outline-none">
+              <option value="gemini-1.5-flash" selected>gemini-1.5-flash</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+            </select>
+            <button onclick="saveApiConfig()" class="bg-rgs-teal text-rgs-navy font-bold px-2.5 py-1.5 rounded hover:bg-rgs-teal/80 transition">Save</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 text-[11px]">
+          <span class="text-gray-400 py-0.5 font-semibold">Modes:</span>
+          <button type="button" onclick="useQuickPrompt('/coach Convert passive pitch into Mission-First Coaching script.')" class="bg-rgs-navy border border-rgs-emerald/40 text-rgs-emerald px-2 py-0.5 rounded">/coach (Mission Pivot)</button>
+          <button type="button" onclick="useQuickPrompt('/meddpicc Please check my active opportunity notes against the 6 MEDDPICC pillars.')" class="bg-rgs-navy border border-rgs-teal/40 text-rgs-teal px-2 py-0.5 rounded">/meddpicc (Deal Audit)</button>
+          <button type="button" onclick="useQuickPrompt('/policy What are the approval authority thresholds for backdated PoPs?')" class="bg-rgs-navy border border-rgs-gold/40 text-rgs-gold px-2 py-0.5 rounded">/policy (Sales Ops)</button>
+        </div>
+
+        <!-- Chat History -->
+        <div id="chatHistory" class="bg-rgs-navy/90 rounded border border-gray-800 p-4 min-h-[350px] max-h-[450px] overflow-y-auto space-y-4 text-xs">
+          <div class="flex items-start space-x-3">
+            <div class="bg-rgs-teal text-rgs-navy font-bold p-2 rounded-full text-xs flex items-center justify-center w-8 h-8"><i class="fa-solid fa-robot"></i></div>
+            <div class="bg-rgs-slate p-3 rounded-lg border border-gray-700 max-w-xl space-y-1">
+              <p class="font-bold text-rgs-teal">RGS AI Coach:</p>
+              <p class="text-gray-200 leading-relaxed">Hello! I am your AI Coach. I assist Rancher Government Solutions AEs in evaluating deal health, reviewing missing intelligence, and mastering the Mission-First Framework.</p>
+              <p class="text-[10px] text-gray-400">Provide your Gemini API Key in the upper right to enable real-time queries. If no key is configured, I will run in simulation/offline mode using customized RGS policy guidelines.</p>
+            </div>
+          </div>
+        </div>
+
+        <form onsubmit="sendAiMessage(event)" class="flex space-x-2">
+          <input type="text" id="aiInput" placeholder="e.g. How do I pitch against OpenShift?" class="flex-1 bg-rgs-navy border border-gray-700 rounded p-2.5 text-xs text-white focus:border-rgs-teal focus:outline-none">
+          <button type="submit" class="bg-rgs-teal text-rgs-navy font-bold px-4 py-2.5 rounded text-xs transition active:scale-95"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 5: EVALUATION LOG -->
+    <section id="historyTab" class="tab-content hidden space-y-6">
+      <div class="glass-card p-6 space-y-4">
+        <div class="border-b border-gray-800 pb-3 flex justify-between items-center">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-rgs-teal"></i> Evaluation Log
+            </h2>
+          </div>
+          <button onclick="clearAuditHistory()" class="bg-rgs-slate hover:bg-rgs-accent text-xs px-3 py-1.5 rounded text-gray-300 border border-gray-700">Clear Log</button>
+        </div>
+        <div class="overflow-x-auto rounded border border-gray-800">
+          <table class="w-full text-left bg-rgs-navy text-xs">
+            <thead class="bg-rgs-slate text-gray-300 uppercase text-[10px]">
+              <tr>
+                <th class="p-2.5">Time</th>
+                <th class="p-2.5">Opp</th>
+                <th class="p-2.5">List Value</th>
+                <th class="p-2.5">Disc %</th>
+                <th class="p-2.5">Grade</th>
+                <th class="p-2.5">Risk</th>
+                <th class="p-2.5">Action</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-gray-800 text-gray-300">
+              <tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No saved evaluations. Click Bookmark to save.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-rgs-navy border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+    <p>Rancher Government Solutions (RGS) • Sales Assistant Tool • Policy v2026.1</p>
+  </footer>
+
+  <script>
+    // State storage
+    let manualPillars = [false, false, false, false, false, false];
+    let auditLog = [];
+
+    const ITEM_CAP_MAP = {
+      'RGS Cloud Suite': { family: 'Cloud Native', cat: 'prod' },
+      'SLES (SUSE Linux)': { family: 'SUSE', cat: 'prod' },
+      'Consulting Services': { family: 'Consulting', cat: 'pro' },
+      'Premium Support (TAM)': { family: 'Cloud Native', cat: 'prem' }
+    };
+
+    const DISCOUNT_TABLES = {
+      'Cloud Native': {
+        'Direct': { prod: 0, prem: 0, pro: 0 },
+        'Disti-Std': { prod: 10, prem: 5, pro: 3 },
+        'Disti-DR1': { prod: 15, prem: 10, pro: 3 },
+        'Disti-DR2': { prod: 32, prem: 15, pro: 10 },
+        'Reseller-Std': { prod: 10, prem: 5, pro: 3 },
+        'Reseller-DR1': { prod: 14, prem: 10, pro: 3 },
+        'Reseller-DR2': { prod: 28, prem: 10, pro: 5 }
+      },
+      'SUSE': {
+        'Direct': { prod: 0, prem: 0, pro: 0 },
+        'Disti-Std': { prod: 15, prem: 5, pro: 3 },
+        'Disti-DR1': { prod: 20, prem: 10, pro: 3 },
+        'Disti-DR2': { prod: 40, prem: 15, pro: 10 },
+        'Reseller-Std': { prod: 15, prem: 5, pro: 3 },
+        'Reseller-DR1': { prod: 20, prem: 10, pro: 3 },
+        'Reseller-DR2': { prod: 36, prem: 10, pro: 5 }
+      },
+      'Consulting': {
+        'Direct': { prod: 0, prem: 0, pro: 0 },
+        'Disti-Std': { prod: 3, prem: 3, pro: 3 },
+        'Disti-DR1': { prod: 3, prem: 3, pro: 3 },
+        'Disti-DR2': { prod: 10, prem: 10, pro: 10 },
+        'Reseller-Std': { prod: 3, prem: 3, pro: 3 },
+        'Reseller-DR1': { prod: 3, prem: 3, pro: 3 },
+        'Reseller-DR2': { prod: 5, prem: 5, pro: 5 }
+      }
+    };
+
+    const PRESETS = {
+      'caoc': {
+        oppName: 'USAF_CAOC_Harvester_Pilot', aeName: 'AE Name', salesMotion: 'Reseller-Std', popRange: 'Current', popDuration: '12mo',
+        skus: [{ type: 'RGS Cloud Suite', qty: 3, listPrice: 14625, discPct: 31.0 }],
+        oppNotes: `Architectural Review: (3) Hosts, Harvester (FIPS 140-3). Next Step: Formal technical review meeting locked in for Oct 28 with Contracting Officer Sarah. 31% requested to fit pilot budget.`
+      },
+      'navy': {
+        oppName: 'USN_NAVSEA_PMA271_RKE2', aeName: 'AE Name', salesMotion: 'Reseller-DR2', popRange: 'Current', popDuration: 'MultiYear',
+        skus: [{ type: 'RGS Cloud Suite', qty: 10, listPrice: 20000, discPct: 28.0 }],
+        oppNotes: `SE Sign-off: VP Brian Durden team verified air-gapped IL6 BOM. Next Step: Formal RFP review with KO Sarah Jenkins on Oct 28. Give-and-Take: Base + 2 Option years locked in. Beating Red Hat OpenShift ELA.`
+      },
+      'direct': {
+        oppName: 'DHS_CBP_AirMarine_SLES', aeName: 'AE Name', salesMotion: 'Direct', popRange: 'Backdated', popDuration: 'Under12mo',
+        skus: [{ type: 'SLES (SUSE Linux)', qty: 76, listPrice: 1724, discPct: 74.0 }],
+        oppNotes: `PoP start date is set to 30 days ago. 74% discount reflects exact Period of Performance (PoP) proration for a 3-month contract duration.`
+      }
+    };
+
+    const SCOPE_ITEMS = [
+      { id: 'sc1', cat: 'po', title: 'PO Entity Name', desc: 'PO must be issued exactly to "Rancher Government Solutions, Inc." (formerly Rancher Federal).' },
+      { id: 'sc2', cat: 'po', title: 'PO Signature & Date', desc: 'PO must be signed, dated, and verified by authorized purchasing authority.' },
+      { id: 'sc3', cat: 'po', title: 'Part Numbers/SKUs Match', desc: 'Verify SKU part numbers on customer PO correspond perfectly to quoted RGS price list.' },
+      { id: 'sc4', cat: 'po', title: 'Quantities Match Quote', desc: 'Line items and quantity values on PO must reconcile exactly against latest sales quote.' },
+      { id: 'sc5', cat: 'po', title: 'Pricing Alignment Check', desc: 'Net purchase value must match approved discounted quotes without discrepancies.' },
+      { id: 'sc6', cat: 'account', title: 'End-user Contact Detail', desc: 'Ensure end-user name, physical email address, and agency contact details are complete.' },
+      { id: 'sc7', cat: 'account', title: 'Bill To / Ship To Matches', desc: 'Reconcile Bill To / Ship To billing structures inside Salesforce with PO details.' },
+      { id: 'sc8', cat: 'account', title: 'Agency Hierarchy Clean', desc: 'Ensure programmatic mapping and appropriate tier levels are established for reporting.' },
+      { id: 'sc9', cat: 'compliance', title: 'Funding Secured Check', desc: 'Validate funding is fully appropriated and secured without contractual contingencies.' },
+      { id: 'sc10', cat: 'compliance', title: 'Sales Motion Compliance', desc: 'Ensure current channel / reseller path matches approval matrix routing.' },
+      { id: 'sc11', cat: 'compliance', title: 'Discount Approvals Attached', desc: 'Verify discount justification approvals or custom VP concessions are attached in SF.' },
+      { id: 'sc12', cat: 'compliance', title: 'Period of Performance (PoP)', desc: 'Ensure start and end Dates match contract parameters (e.g., standard current PoP).' },
+      { id: 'sc13', cat: 'compliance', title: 'SE Tech Win Confirmation', desc: 'Confirm SE Technical verification is finalized and architectural block cleared.' },
+      { id: 'sc14', cat: 'compliance', title: 'SOW / ProServ Sign-off', desc: 'Ensure finalized executed Statements of Work (SOWs) are fully attached if ProServ is ordered.' }
+    ];
+
+    // Core Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-rgs-teal', 'text-rgs-teal');
+        btn.classList.add('border-transparent', 'text-gray-400');
+      });
+      document.getElementById(tabId)?.classList.remove('hidden');
+      document.getElementById('btn-' + tabId)?.classList.add('border-rgs-teal', 'text-rgs-teal');
+      document.getElementById('btn-' + tabId)?.classList.remove('border-transparent', 'text-gray-400');
+    }
+
+    // Helper: show Toast Notifications
+    function showToast(msg, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+      if (!toast) return;
+      toastMsg.innerText = msg;
+      toastIcon.className = isSuccess ? 'fa-solid fa-circle-check text-rgs-emerald text-lg' : 'fa-solid fa-triangle-exclamation text-rgs-crimson text-lg';
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Copy Helper
+    function copyToClipboard(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg || 'Copied to clipboard!');
+      } catch (err) {
+        showToast('Copying failed', false);
+      }
+      document.body.removeChild(ta);
+    }
+
+    // SKU Line Item dynamic UI operations
+    function addSkuLine(type = 'RGS Cloud Suite', qty = 1, listPrice = 10000, discPct = 10.0) {
+      const container = document.getElementById('skuLineContainer');
+      if (!container) return;
+      const lineId = 'sku-line-' + Math.random().toString(36).substr(2, 4);
+      container.insertAdjacentHTML('beforeend', `
+        <div id="${lineId}" class="grid grid-cols-12 gap-1 items-center text-[11px] sku-row">
+          <select onchange="recalculateSkuTotals()" class="sku-type col-span-4 bg-rgs-navy border border-gray-700 rounded p-1 text-white text-[10px] focus:outline-none">
+            <option value="RGS Cloud Suite" ${type === 'RGS Cloud Suite' ? 'selected' : ''}>RGS Cloud Suite</option>
+            <option value="SLES (SUSE Linux)" ${type === 'SLES (SUSE Linux)' ? 'selected' : ''}>SLES (SUSE Linux)</option>
+            <option value="Consulting Services" ${type === 'Consulting Services' ? 'selected' : ''}>Consulting Services</option>
+            <option value="Premium Support (TAM)" ${type === 'Premium Support (TAM)' ? 'selected' : ''}>Premium Support (TAM)</option>
+          </select>
+          <input type="number" value="${qty}" min="1" onchange="recalculateSkuTotals()" oninput="recalculateSkuTotals()" class="sku-qty col-span-2 bg-rgs-navy border border-gray-700 rounded p-1 text-white text-center focus:outline-none">
+          <input type="number" value="${listPrice}" step="any" min="0" onchange="recalculateSkuTotals()" oninput="recalculateSkuTotals()" class="sku-price col-span-3 bg-rgs-navy border border-gray-700 rounded p-1 text-white focus:outline-none">
+          <input type="number" value="${discPct}" step="0.1" min="0" max="100" onchange="recalculateSkuTotals()" oninput="recalculateSkuTotals()" class="sku-disc col-span-2 bg-rgs-navy border border-gray-700 rounded p-1 text-rgs-gold font-bold focus:outline-none">
+          <button type="button" onclick="removeSkuLine('${lineId}')" class="col-span-1 text-gray-500 hover:text-rgs-crimson text-center"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `);
+      recalculateSkuTotals();
+    }
+
+    function removeSkuLine(lineId) {
+      document.getElementById(lineId)?.remove();
+      recalculateSkuTotals();
+    }
+
+    function recalculateSkuTotals() {
+      const rows = document.querySelectorAll('.sku-row');
+      let totalList = 0;
+      let totalNet = 0;
+      let hasOverCapLine = false;
+      let worstOverage = 0;
+      const motion = document.getElementById('salesMotion')?.value || 'Reseller-Std';
+
+      rows.forEach(row => {
+        const type = row.querySelector('.sku-type')?.value || 'RGS Cloud Suite';
+        const qty = parseFloat(row.querySelector('.sku-qty')?.value) || 0;
+        const price = parseFloat(row.querySelector('.sku-price')?.value) || 0;
+        const disc = parseFloat(row.querySelector('.sku-disc')?.value) || 0;
+
+        const lineList = qty * price;
+        const lineNet = lineList * (1 - (disc / 100));
+        totalList += lineList;
+        totalNet += lineNet;
+
+        // Check standard cap
+        const capInfo = ITEM_CAP_MAP[type];
+        if (capInfo) {
+          const table = DISCOUNT_TABLES[capInfo.family];
+          if (table && table[motion]) {
+            const maxCapAllowed = table[motion][capInfo.cat] || 0;
+            if (disc > maxCapAllowed) {
+              hasOverCapLine = true;
+              const overage = disc - maxCapAllowed;
+              if (overage > worstOverage) {
+                worstOverage = overage;
+              }
+            }
+          }
+        }
+      });
+
+      const avgDisc = totalList > 0 ? ((totalList - totalNet) / totalList) * 100 : 0;
+
+      const listEl = document.getElementById('calcTotalList');
+      const discEl = document.getElementById('calcAvgDiscount');
+      const netEl = document.getElementById('calcNetVal');
+
+      if (listEl) listEl.innerText = '$' + totalList.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (discEl) discEl.innerText = avgDisc.toFixed(1) + '%';
+      if (netEl) netEl.innerText = '$' + totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function updateDiscountCapNote() {
+      recalculateSkuTotals();
+    }
+
+    // SCOPE SOP Checklist Management
+    let scopeState = {};
+
+    function initScopeChecklist() {
+      const saved = localStorage.getItem('scopeChecklistState');
+      if (saved) {
+        try {
+          scopeState = JSON.parse(saved);
+        } catch (e) {
+          scopeState = {};
+        }
+      } else {
+        scopeState = {};
+      }
+      renderScopeChecklist();
+    }
+
+    function renderScopeChecklist(catFilter = 'all') {
+      const grid = document.getElementById('scopeChecklistGrid');
+      if (!grid) return;
+
+      // Update active filter button classes
+      document.querySelectorAll('.scope-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-rgs-teal', 'text-rgs-navy', 'font-bold');
+        btn.classList.add('bg-rgs-slate', 'text-gray-300', 'border', 'border-gray-700');
+      });
+      const activeBtn = document.getElementById('btn-scope-' + catFilter);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-rgs-slate', 'text-gray-300', 'border', 'border-gray-700');
+        activeBtn.classList.add('bg-rgs-teal', 'text-rgs-navy', 'font-bold');
+      }
+
+      const filtered = SCOPE_ITEMS.filter(item => catFilter === 'all' || item.cat === catFilter);
+
+      grid.innerHTML = filtered.map(item => {
+        const isChecked = !!scopeState[item.id];
+        return `
+          <div class="p-3 rounded-lg border transition ${isChecked ? 'bg-rgs-emerald/10 border-rgs-emerald/40' : 'bg-rgs-navy border-gray-800'} flex items-start space-x-3 text-xs">
+            <input type="checkbox" id="chk-${item.id}" ${isChecked ? 'checked' : ''} onchange="toggleScopeItem('${item.id}')" class="mt-0.5 accent-rgs-emerald w-4 h-4 cursor-pointer">
+            <div class="flex-1">
+              <label for="chk-${item.id}" class="font-bold cursor-pointer ${isChecked ? 'text-rgs-emerald' : 'text-white'}">${item.title}</label>
+              <p class="text-[10px] text-gray-400 mt-0.5 leading-relaxed">${item.desc}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateScopeProgress();
+    }
+
+    function toggleScopeItem(id) {
+      scopeState[id] = !scopeState[id];
+      localStorage.setItem('scopeChecklistState', JSON.stringify(scopeState));
+      renderScopeChecklist(document.querySelector('.scope-filter-btn.bg-rgs-teal')?.id?.replace('btn-scope-', '') || 'all');
+    }
+
+    function updateScopeProgress() {
+      const totalCount = SCOPE_ITEMS.length;
+      const checkedCount = SCOPE_ITEMS.filter(item => !!scopeState[item.id]).length;
+      const progressText = document.getElementById('scopeProgressText');
+      if (progressText) {
+        progressText.innerText = `${checkedCount} / ${totalCount}`;
+        if (checkedCount === totalCount) {
+          progressText.className = 'text-sm font-bold text-rgs-emerald';
+        } else {
+          progressText.className = 'text-sm font-bold text-rgs-teal';
+        }
+      }
+    }
+
+    function resetScopeChecklist() {
+      scopeState = {};
+      localStorage.removeItem('scopeChecklistState');
+      renderScopeChecklist('all');
+      showToast('SCOPE Checklist reset successfully!');
+    }
+
+    function filterScope(cat) {
+      renderScopeChecklist(cat);
+    }
+
+    function copyScopeMemo() {
+      const checkedCount = SCOPE_ITEMS.filter(item => !!scopeState[item.id]).length;
+      const progressStr = `${checkedCount}/${SCOPE_ITEMS.length}`;
+      let text = `[RGS Sales Order Processing SCOPE Status: ${progressStr}]\n`;
+      text += `Status: ${checkedCount === SCOPE_ITEMS.length ? 'COMPLETE (Ready for Order Submission)' : 'INCOMPLETE'}\n\n`;
+      text += `Completed Steps:\n`;
+      SCOPE_ITEMS.forEach(item => {
+        if (scopeState[item.id]) {
+          text += ` - [X] ${item.title}: ${item.desc}\n`;
+        }
+      });
+      if (checkedCount < SCOPE_ITEMS.length) {
+        text += `\nRemaining / Pending Steps:\n`;
+        SCOPE_ITEMS.forEach(item => {
+          if (!scopeState[item.id]) {
+            text += ` - [ ] ${item.title}: ${item.desc}\n`;
+          }
+        });
+      }
+      copyToClipboard(text, 'Salesforce Chatter Memo Copied!');
+    }
+
+    // Search and Render RGS Policy Matrix
+    function renderPolicyMatrix() {
+      const tbody = document.getElementById('discountMatrixBody');
+      if (!tbody) return;
+
+      let html = '';
+      for (const [prodFamily, motions] of Object.entries(DISCOUNT_TABLES)) {
+        for (const [motionName, caps] of Object.entries(motions)) {
+          html += `
+            <tr class="hover:bg-rgs-slate/50 policy-row">
+              <td class="p-2.5 font-bold text-white">${prodFamily}</td>
+              <td class="p-2.5">${motionName}</td>
+              <td class="p-2.5 text-rgs-emerald font-semibold">${caps.prod}%</td>
+              <td class="p-2.5">${caps.prem}%</td>
+              <td class="p-2.5">${caps.pro}%</td>
+            </tr>
+          `;
+        }
+      }
+      tbody.innerHTML = html;
+    }
+
+    function searchPolicyTable() {
+      const input = document.getElementById('policySearch');
+      if (!input) return;
+      const filter = input.value.toUpperCase();
+
+      const rows = document.querySelectorAll('.policy-row');
+      rows.forEach(row => {
+        const text = row.innerText || row.textContent;
+        if (text.toUpperCase().indexOf(filter) > -1) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Filter approval table as well
+      const approvalRows = document.querySelectorAll('#approvalMatrixTable tbody tr');
+      approvalRows.forEach(row => {
+        const text = row.innerText || row.textContent;
+        if (text.toUpperCase().indexOf(filter) > -1) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function updateCardColors(grade) {
+      const gradeCard = document.getElementById('gradeCard');
+      const forecastCard = document.getElementById('forecastCard');
+      const riskCard = document.getElementById('riskCard');
+      const resGrade = document.getElementById('resGrade');
+      const resStatusBadge = document.getElementById('resStatusBadge');
+      const resForecast = document.getElementById('resForecast');
+      const resRiskScore = document.getElementById('resRiskScore');
+      const resRiskLabel = document.getElementById('resRiskLabel');
+
+      if (!gradeCard) return;
+
+      if (grade === 'A') {
+        const borderClass = 'p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-emerald/10 border-rgs-emerald shadow-lg';
+        gradeCard.className = forecastCard.className = riskCard.className = borderClass;
+        resGrade.className = resRiskScore.className = 'text-3xl font-black text-rgs-emerald';
+        resStatusBadge.className = 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-emerald/20 text-rgs-emerald border-rgs-emerald/30';
+        resForecast.className = 'text-base font-extrabold uppercase text-rgs-emerald';
+        resRiskLabel.className = 'text-xs font-bold text-rgs-emerald';
+        resRiskLabel.innerText = 'LOW RISK';
+      } else if (grade === 'B') {
+        const borderClass = 'p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-gold/10 border-rgs-gold shadow-lg';
+        gradeCard.className = forecastCard.className = riskCard.className = borderClass;
+        resGrade.className = resRiskScore.className = 'text-3xl font-black text-rgs-gold';
+        resStatusBadge.className = 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-gold/20 text-rgs-gold border-rgs-gold/30';
+        resForecast.className = 'text-base font-extrabold uppercase text-rgs-gold';
+        resRiskLabel.className = 'text-xs font-bold text-rgs-gold';
+        resRiskLabel.innerText = 'MED RISK';
+      } else {
+        const borderClass = 'p-4 rounded-lg flex flex-col justify-between border-l-4 transition-all duration-300 bg-rgs-crimson/10 border-rgs-crimson shadow-lg';
+        gradeCard.className = forecastCard.className = riskCard.className = borderClass;
+        resGrade.className = resRiskScore.className = 'text-3xl font-black text-rgs-crimson';
+        resStatusBadge.className = 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-crimson/20 text-rgs-crimson border-rgs-crimson/30';
+        resForecast.className = 'text-base font-extrabold uppercase text-rgs-crimson';
+        resRiskLabel.className = 'text-xs font-bold text-rgs-crimson';
+        resRiskLabel.innerText = 'HIGH RISK';
+      }
+    }
+
+    function toggleMeddPillar(idx) {
+      manualPillars[idx] = !manualPillars[idx];
+      runDealAudit();
+    }
+
+    function resetAuditDashboardToPassing() {
+      updateCardColors('A');
+      if (document.getElementById('resGrade')) document.getElementById('resGrade').innerText = 'GRADE A';
+      if (document.getElementById('resStatusBadge')) document.getElementById('resStatusBadge').innerText = 'PASSING';
+      if (document.getElementById('resGradeSub')) document.getElementById('resGradeSub').innerText = '0 Escalation Flags';
+      if (document.getElementById('resForecast')) document.getElementById('resForecast').innerText = 'Ready to move to next stage';
+      if (document.getElementById('resForecastSub')) document.getElementById('resForecastSub').innerText = 'Ready for Evaluation';
+      if (document.getElementById('resRiskScore')) document.getElementById('resRiskScore').innerText = '0/100';
+      if (document.getElementById('resRiskSub')) document.getElementById('resRiskSub').innerText = 'Standard Policy';
+
+      const pillars = [
+        { name: '1. Give-and-Take', text: 'Multi-year / Base+Options' },
+        { name: '2. Strategic Value', text: 'P2P / Case Study / J6' },
+        { name: '3. Competitive Intel', text: 'OpenShift / Tanzu blocker' },
+        { name: '4. Expansion Vector', text: 'NeuVector / 12-24 mo roadmap' },
+        { name: '5. Cost to Serve', text: 'Paid ProServ SOW attached' },
+        { name: '6. "No" Consequence', text: 'SAT threshold / FY window' }
+      ];
+
+      const meddContainer = document.getElementById('meddpiccGrid');
+      if (meddContainer) {
+        meddContainer.innerHTML = pillars.map((p, idx) => `
+          <button type="button" onclick="toggleMeddPillar(${idx})" class="p-2.5 rounded border text-left transition bg-rgs-navy border-gray-800 text-gray-400 hover:border-rgs-teal/50">
+            <div class="font-bold flex justify-between items-center text-[11px]">
+              <span>${p.name}</span>
+              <i class="fa-solid fa-circle text-gray-700"></i>
+            </div>
+            <p class="text-[10px] mt-0.5 opacity-80">${p.text}</p>
+          </button>
+        `).join('');
+      }
+
+      const pillarTag = document.getElementById('meddPillarCountTag');
+      if (pillarTag) pillarTag.innerText = '0 / 6 Pillars Met';
+
+      const coachBox = document.getElementById('coachGuidanceBox');
+      if (coachBox) {
+        coachBox.innerHTML = `<p class="text-gray-400 italic text-center py-6">Complete the input form and click <strong class="text-rgs-teal">"EVALUATE DEAL & DISCOUNT"</strong> to get mentoring on deal health, missing intelligence, and approval readiness.</p>`;
+      }
+    }
+
+    async function runDealAudit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const oppName = document.getElementById('oppName')?.value?.trim() || '';
+      const aeName = document.getElementById('aeName')?.value?.trim() || '';
+      const oppNotesText = document.getElementById('oppNotes')?.value?.trim() || '';
+
+      if (!oppName || !oppNotesText) {
+        showToast("Please enter Opportunity Name and Notes before evaluating", false);
+        return;
+      }
+
+      const motion = document.getElementById('salesMotion')?.value || 'Reseller-Std';
+      const popDuration = document.getElementById('popDuration')?.value || '12mo';
+      const popRange = document.getElementById('popRange')?.value || 'Current';
+
+      const rows = document.querySelectorAll('.sku-row');
+      let totalList = 0;
+      let totalNet = 0;
+      let hasOverCapLine = false;
+
+      rows.forEach(row => {
+        const type = row.querySelector('.sku-type')?.value || 'RGS Cloud Suite';
+        const qty = parseFloat(row.querySelector('.sku-qty')?.value) || 0;
+        const price = parseFloat(row.querySelector('.sku-price')?.value) || 0;
+        const disc = parseFloat(row.querySelector('.sku-disc')?.value) || 0;
+
+        const lineList = qty * price;
+        totalList += lineList;
+        totalNet += lineList * (1 - (disc / 100));
+
+        const capInfo = ITEM_CAP_MAP[type];
+        if (capInfo) {
+          const table = DISCOUNT_TABLES[capInfo.family];
+          if (table && table[motion]) {
+            const maxCapAllowed = table[motion][capInfo.cat] || 0;
+            if (disc > maxCapAllowed) {
+              hasOverCapLine = true;
+            }
+          }
+        }
+      });
+
+      const avgDiscountNum = totalList > 0 ? ((totalList - totalNet) / totalList) * 100 : 0;
+
+      const coachBox = document.getElementById('coachGuidanceBox');
+      if (coachBox) {
+        coachBox.innerHTML = `
+          <div class="flex items-center justify-center space-x-3 py-8 text-rgs-teal">
+            <i class="fa-solid fa-circle-notch fa-spin text-2xl"></i>
+            <span class="font-bold">Gemini AI is evaluating deal notes and rendering mentor feedback...</span>
+          </div>
+        `;
+      }
+
+      const chkFundingOverride = document.getElementById('chkFundingSecured')?.checked || false;
+      const chkNextStepOverride = document.getElementById('chkNextStepLocked')?.checked || false;
+      const chkSeWinOverride = document.getElementById('chkSeWinApproved')?.checked || false;
+
+      const textLower = oppNotesText.toLowerCase();
+
+      const isVagueNextStep = !chkNextStepOverride && (textLower.includes('waiting on approval') || textLower.includes('waiting on') || textLower.includes('following up') || textLower.includes('shooting a little blind') || textLower.includes('customer reviewing'));
+      const hasHardDate = chkNextStepOverride || /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2}\/\d{1,2})\b/.test(textLower);
+      const rule1Pass = chkNextStepOverride || (hasHardDate && !isVagueNextStep);
+
+      const isUnfunded = !chkFundingOverride && (textLower.includes('no funding') || textLower.includes('unfunded') || textLower.includes('do not have any funding')) && !textLower.includes('funding is secured') && !textLower.includes('funding verified');
+
+      const isProratedPoP = popDuration === 'Under12mo' || textLower.includes('prorat') || textLower.includes('coterm') || textLower.includes('co-term');
+
+      // Attempt AI Content generation
+      const apiKey = localStorage.getItem('geminiApiKey') || '';
+      const selectedModel = document.getElementById('geminiModel')?.value || 'gemini-1.5-flash';
+      let aiResult = null;
+
+      if (apiKey) {
+        const systemPrompt = `You are the RGS AI Executive Sales Mentor for Account Executives.
+Analyze the provided notes and discount justification. Evaluate the deal against the 6 MEDDPICC Justification Pillars:
+1. Give-and-Take (concessions, multi-year, base+options)
+2. Strategic Value (P2P call, J6 briefing, case study)
+3. Competitive Intel (VMware takeout, OpenShift/Tanzu blocker)
+4. Expansion Potential (dev/test to production, NeuVector, 12-24 mo roadmap)
+5. Cost to Serve (air-gapped IL5/6 complexity, attached ProServ SOW)
+6. "No" Consequence (credit card limit, SAT threshold, loss of production footprint)
+
+Provide a unified mentoring summary formatted in safe, clean HTML (no markdown codeblocks) to inject into a div. Use <ul>, <li>, and <strong> tags.
+The mentoring MUST cover:
+1. Deal Health (How the deal looks right now).
+2. What You Need to Go Get (Exact missing info: budget, KO name, competitive proof).
+3. Approval Readiness (Is it ready for leadership approval or not).
+4. Formal Approval Statement (A short paragraph the AE can copy to leadership).`;
+
+        const payload = {
+          contents: [{ parts: [{ text: `Opportunity: ${oppName}\nAE: ${aeName}\nSales Motion: ${motion}\nPoP Duration: ${popDuration}\nEffective Discount: ${avgDiscountNum.toFixed(1)}%\nNotes:\n${oppNotesText}` }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                meddpiccPillars: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      passed: { type: "BOOLEAN" },
+                      reasoning: { type: "STRING" }
+                    }
+                  },
+                  description: "Array of exactly 6 items corresponding to pillars 1-6"
+                },
+                coachingMentorshipHtml: { type: "STRING", description: "HTML formatted mentor advice with headers: Deal Health, What You Need to Go Get, Approval Readiness, Formal Approval Statement" }
+              }
+            }
+          }
+        };
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const json = await response.json();
+          const responseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (responseText) aiResult = JSON.parse(responseText);
+        } catch (err) {
+          console.debug("Gemini semantic audit API failed. Fallback engaged.", err);
+        }
+      }
+
+      // Process Results
+      let pillarPassArray = [false, false, false, false, false, false];
+      let pillarExplanations = Array(6).fill('Evaluated via notes');
+
+      if (aiResult && Array.isArray(aiResult.meddpiccPillars)) {
+        aiResult.meddpiccPillars.forEach((p, idx) => {
+          if (idx < 6) {
+            pillarPassArray[idx] = !!p.passed;
+            pillarExplanations[idx] = p.reasoning || 'Evaluated';
+          }
+        });
+      } else {
+         pillarPassArray[0] = manualPillars[0] || textLower.includes('base +') || isProratedPoP || textLower.includes('give-and-take') || textLower.includes('option');
+         pillarPassArray[1] = manualPillars[1] || textLower.includes('p2p') || textLower.includes('reference') || textLower.includes('strategic value') || textLower.includes('case study');
+         pillarPassArray[2] = manualPillars[2] || textLower.includes('openshift') || textLower.includes('vmware takeout') || textLower.includes('competit') || textLower.includes('red hat');
+         pillarPassArray[3] = manualPillars[3] || textLower.includes('dev to prod') || textLower.includes('expansion') || textLower.includes('roadmap') || textLower.includes('neuvector');
+         pillarPassArray[4] = manualPillars[4] || textLower.includes('proserv') || textLower.includes('sow') || textLower.includes('cost to serve');
+         pillarPassArray[5] = manualPillars[5] || textLower.includes('credit card') || textLower.includes('sat limit') || isProratedPoP || textLower.includes('consequence');
+
+         pillarExplanations[0] = pillarPassArray[0] ? 'Prorated PoP / multi-year terms detected.' : 'No clear multi-year / Give-and-Take found.';
+         pillarExplanations[1] = pillarPassArray[1] ? 'Strategic reference or P2P/J6 validation mentioned.' : 'Strategic customer validation is missing.';
+         pillarExplanations[2] = pillarPassArray[2] ? 'Competitive intel (OpenShift/VMware blocker) details found.' : 'Competitor intelligence is not explicitly noted.';
+         pillarExplanations[3] = pillarPassArray[3] ? 'Dev-to-Prod expansion roadmap indicated.' : 'Roadmap/expansion vectors are undefined.';
+         pillarExplanations[4] = pillarPassArray[4] ? 'Professional Services (ProServ) SOW complexity mapped.' : 'No associated ProServ / delivery costs.';
+         pillarExplanations[5] = pillarPassArray[5] ? 'Business impact or consequence of "No" established.' : 'Consequence of no action not established.';
+      }
+
+      manualPillars.forEach((m, idx) => {
+        if (m) {
+            pillarPassArray[idx] = true;
+            pillarExplanations[idx] = 'Manually Overridden by AE';
+        }
+      });
+
+      const pillarCount = pillarPassArray.filter(Boolean).length;
+
+      // Strict Deterministic Grading Rules
+      let grade = 'B';
+      let forecast = 'Keep at current stage (More info needed)';
+      let riskScore = 40;
+
+      if (isUnfunded || !rule1Pass) {
+          grade = 'F';
+          forecast = 'Downgrade stage';
+          riskScore = isUnfunded ? 90 : 75;
+      } else if (hasOverCapLine && !isProratedPoP) {
+          if (pillarCount >= 4) {
+              grade = 'B';
+              forecast = 'Keep at current stage (More info needed)';
+              riskScore = 45;
+          } else {
+              grade = 'F';
+              forecast = 'Downgrade stage';
+              riskScore = 80;
+          }
+      } else {
+          if (pillarCount >= 3 || isProratedPoP) {
+              grade = 'A';
+              forecast = 'Ready to move to next stage';
+              riskScore = 15;
+          } else {
+              grade = 'B';
+              forecast = 'Keep at current stage (More info needed)';
+              riskScore = 35;
+          }
+      }
+
+      // Adjust Risk Score slightly for pop duration or pop range
+      if (popRange === 'Backdated') riskScore += 10;
+      if (popRange === 'Future') riskScore += 5;
+      if (riskScore > 100) riskScore = 100;
+
+      updateCardColors(grade);
+
+      if (document.getElementById('resGrade')) document.getElementById('resGrade').innerText = `GRADE ${grade}`;
+      if (document.getElementById('resStatusBadge')) {
+        const badge = document.getElementById('resStatusBadge');
+        badge.innerText = grade === 'A' ? 'PASSING' : grade === 'B' ? 'ESCALATED' : 'REJECTED';
+        badge.className = grade === 'A' ? 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-emerald/20 text-rgs-emerald border-rgs-emerald/30' : grade === 'B' ? 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-gold/20 text-rgs-gold border-rgs-gold/30' : 'text-[10px] px-2 py-0.5 rounded font-bold border uppercase bg-rgs-crimson/20 text-rgs-crimson border-rgs-crimson/30';
+      }
+      if (document.getElementById('resGradeSub')) document.getElementById('resGradeSub').innerText = isProratedPoP ? `PoP Prorated (${popDuration})` : `MEDDPICC: ${pillarCount}/6 Pillars`;
+      if (document.getElementById('resForecast')) document.getElementById('resForecast').innerText = forecast.toUpperCase();
+      if (document.getElementById('resForecastSub')) document.getElementById('resForecastSub').innerText = grade === 'A' ? 'Qualified for progression' : 'Address gaps before escalating';
+      if (document.getElementById('resRiskScore')) document.getElementById('resRiskScore').innerText = `${riskScore}/100`;
+      if (document.getElementById('resRiskSub')) {
+        document.getElementById('resRiskSub').innerText = popRange === 'Backdated' ? 'High Risk Backdated PoP' : popDuration === 'Under12mo' ? 'Short-term Co-term / Prorate' : 'Standard Policy';
+      }
+
+      // Render MEDDPICC Pillars
+      const pillarNames = [
+        '1. Give-and-Take', '2. Strategic Value', '3. Competitive Intel',
+        '4. Expansion Vector', '5. Cost to Serve', '6. "No" Consequence'
+      ];
+
+      const meddContainer = document.getElementById('meddpiccGrid');
+      if (meddContainer) {
+        meddContainer.innerHTML = pillarNames.map((name, idx) => {
+          const isPassed = pillarPassArray[idx];
+          const exp = pillarExplanations[idx];
+          return `
+            <button type="button" onclick="toggleMeddPillar(${idx})" class="p-2.5 rounded border text-left transition ${isPassed ? 'bg-rgs-emerald/10 border-rgs-emerald/40 text-rgs-emerald' : 'bg-rgs-navy border-gray-800 text-gray-400 hover:border-rgs-teal/50'}" title="${exp}">
+              <div class="font-bold flex justify-between items-center text-[11px]">
+                <span>${name}</span>
+                <i class="${isPassed ? 'fa-solid fa-circle-check text-rgs-emerald' : 'fa-solid fa-circle-xmark text-gray-600'}"></i>
+              </div>
+              <p class="text-[10px] mt-0.5 opacity-80 leading-tight line-clamp-2">${exp}</p>
+            </button>
+          `;
+        }).join('');
+      }
+
+      const pillarTag = document.getElementById('meddPillarCountTag');
+      if (pillarTag) pillarTag.innerText = `${pillarCount} / 6 Pillars Met`;
+
+      // Render AI Mentor Box
+      if (coachBox) {
+        if (aiResult && aiResult.coachingMentorshipHtml) {
+          coachBox.innerHTML = `
+            <div class="space-y-4 text-sm text-gray-300">
+              ${aiResult.coachingMentorshipHtml.replace(/<strong/g, '<strong class="text-white"').replace(/<h/g, '<h4 class="text-rgs-teal font-bold mb-1"')}
+            </div>
+          `;
+        } else {
+          coachBox.innerHTML = `
+            <div class="space-y-4 text-sm text-gray-300">
+              <div>
+                <h4 class="text-rgs-teal font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-stethoscope text-xs"></i> Deal Health Diagnostic</h4>
+                <p>This opportunity is currently rated at <strong class="text-white">${grade === 'A' ? 'GRADE A (Passing)' : grade === 'B' ? 'GRADE B (Requires Escalation)' : 'GRADE F (Rejected)'}</strong>. Based on automatic text-parsing, your opportunity has satisfied <strong class="text-white">${pillarCount} of 6 MEDDPICC pillars</strong>.</p>
+              </div>
+              <div>
+                <h4 class="text-rgs-gold font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-xs"></i> Strategic Action Plan (What to Go Get)</h4>
+                <ul class="list-disc pl-5 space-y-1 text-xs">
+                  ${!rule1Pass ? '<li class="text-rgs-crimson font-bold">Lock in a hard next-step date (such as a calendar event or contracting milestone) and name your Contracting Officer. Currently marked as vague next steps.</li>' : '<li>Next-step hard date validation is secure.</li>'}
+                  ${isUnfunded ? '<li class="text-rgs-crimson font-bold">Secure a committed funding / budget confirmation. Explicit unfunded remarks are detected in your logs.</li>' : '<li>Funding secured validation completed.</li>'}
+                  ${hasOverCapLine && !isProratedPoP ? '<li class="text-rgs-crimson font-bold">Justify above-standard discount! Your discount exceeds Rancher\'s standard caps. Highlight specific Give-and-Take terms.</li>' : ''}
+                  ${pillarCount < 4 ? '<li>Close MEDDPICC intelligence gaps. Focus on demonstrating competitive blockers against VMware/RedHat, or establishing expansion vectors.</li>' : '<li>Your deal displays healthy MEDDPICC justification metrics.</li>'}
+                </ul>
+              </div>
+              <div class="p-3 bg-rgs-slate border border-gray-700 rounded text-xs space-y-1">
+                <h4 class="text-white font-bold flex items-center gap-1.5"><i class="fa-solid fa-file-signature text-xs"></i> Leadership Review Memo & Formal Approval Statement</h4>
+                <p class="text-gray-400 italic">"Opportunity ${oppName} is currently graded as ${grade}. Standard discount checks completed. ${grade === 'A' ? 'Cleared for regular progression.' : 'Requires VP concession review due to specific policy flags.'}"</p>
+                <button onclick="copyToClipboard(this.nextElementSibling.innerText, 'Memo Copied!')" class="mt-2 text-[10px] bg-rgs-teal/20 text-rgs-teal hover:bg-rgs-teal hover:text-rgs-navy px-2 py-0.5 rounded font-bold transition">Copy Formal Statement</button>
+                <span class="hidden">FORMAL MEMO: AE ${aeName} requests standard approval for ${oppName} at effective discount of ${avgDiscountNum.toFixed(1)}%. Deterministic Grade is ${grade} with risk score ${riskScore}/100. MEDDPICC score is ${pillarCount}/6. Ready action: ${forecast}.</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      showToast(`Deal Evaluation Completed. Grade: ${grade}`);
+    }
+
+    // Preset Loader
+    function loadPreset(key) {
+      const data = PRESETS[key];
+      if (!data) return;
+      document.getElementById('oppName').value = data.oppName;
+      document.getElementById('aeName').value = data.aeName;
+      document.getElementById('salesMotion').value = data.salesMotion;
+      document.getElementById('popRange').value = data.popRange;
+      document.getElementById('popDuration').value = data.popDuration;
+      document.getElementById('oppNotes').value = data.oppNotes || '';
+
+      document.getElementById('chkFundingSecured').checked = (key === 'navy' || key === 'direct');
+      document.getElementById('chkNextStepLocked').checked = (key === 'navy' || key === 'direct');
+      document.getElementById('chkSeWinApproved').checked = (key === 'navy' || key === 'direct');
+      manualPillars = [false, false, false, false, false, false];
+
+      const container = document.getElementById('skuLineContainer');
+      if (container) container.innerHTML = '';
+      if (data.skus) {
+        data.skus.forEach(s => addSkuLine(s.type, s.qty, s.listPrice, s.discPct));
+      } else {
+        addSkuLine();
+      }
+
+      recalculateSkuTotals();
+      showToast(`Loaded Preset: ${data.oppName}`);
+    }
+
+    function clearDealForm() {
+      document.getElementById('oppName').value = '';
+      document.getElementById('aeName').value = '';
+      document.getElementById('salesMotion').value = 'Reseller-Std';
+      document.getElementById('popRange').value = 'Current';
+      document.getElementById('popDuration').value = '12mo';
+      document.getElementById('oppNotes').value = '';
+      document.getElementById('chkFundingSecured').checked = false;
+      document.getElementById('chkNextStepLocked').checked = false;
+      document.getElementById('chkSeWinApproved').checked = false;
+      manualPillars = [false, false, false, false, false, false];
+
+      const container = document.getElementById('skuLineContainer');
+      if (container) container.innerHTML = '';
+      addSkuLine();
+
+      resetAuditDashboardToPassing();
+      showToast('All fields cleared');
+    }
+
+    // Persistence & Evaluation Log Bookmarking System
+    function initAuditLog() {
+      const saved = localStorage.getItem('rgsAuditLog');
+      if (saved) {
+        try {
+          auditLog = JSON.parse(saved);
+        } catch (e) {
+          auditLog = [];
+        }
+      } else {
+        auditLog = [];
+      }
+      renderAuditLogTable();
+    }
+
+    function saveAuditToLog() {
+      const oppName = document.getElementById('oppName')?.value?.trim() || '';
+      if (!oppName) {
+        showToast('Please specify Opportunity Name before saving to log', false);
+        return;
+      }
+
+      // Read current grade, risk score, list and net totals from active UI DOM
+      const gradeText = document.getElementById('resGrade')?.innerText?.replace('GRADE ', '') || 'A';
+      const riskText = document.getElementById('resRiskScore')?.innerText || '0/100';
+      const listVal = document.getElementById('calcTotalList')?.innerText || '$0.00';
+      const discVal = document.getElementById('calcAvgDiscount')?.innerText || '0.0%';
+
+      // Capture input parameters to load back later
+      const rows = document.querySelectorAll('.sku-row');
+      const savedSkus = [];
+      rows.forEach(row => {
+        savedSkus.push({
+          type: row.querySelector('.sku-type')?.value || 'RGS Cloud Suite',
+          qty: parseFloat(row.querySelector('.sku-qty')?.value) || 1,
+          listPrice: parseFloat(row.querySelector('.sku-price')?.value) || 10000,
+          discPct: parseFloat(row.querySelector('.sku-disc')?.value) || 10
+        });
+      });
+
+      const auditItem = {
+        id: 'eval-' + Math.random().toString(36).substr(2, 4),
+        timestamp: new Date().toLocaleString(),
+        oppName: oppName,
+        aeName: document.getElementById('aeName')?.value?.trim() || '',
+        salesMotion: document.getElementById('salesMotion')?.value || 'Reseller-Std',
+        popRange: document.getElementById('popRange')?.value || 'Current',
+        popDuration: document.getElementById('popDuration')?.value || '12mo',
+        oppNotes: document.getElementById('oppNotes')?.value || '',
+        funding: document.getElementById('chkFundingSecured')?.checked || false,
+        nextStep: document.getElementById('chkNextStepLocked')?.checked || false,
+        seWin: document.getElementById('chkSeWinApproved')?.checked || false,
+        grade: gradeText,
+        risk: riskText,
+        listValue: listVal,
+        discPct: discVal,
+        skus: savedSkus
+      };
+
+      auditLog.unshift(auditItem);
+      localStorage.setItem('rgsAuditLog', JSON.stringify(auditLog));
+      renderAuditLogTable();
+      showToast(`Evaluation for "${oppName}" bookmarked successfully!`);
+    }
+
+    function renderAuditLogTable() {
+      const tbody = document.getElementById('historyTableBody');
+      if (!tbody) return;
+
+      if (auditLog.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No saved evaluations. Click Bookmark to save.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = auditLog.map(item => {
+        let badgeColorClass = 'bg-rgs-emerald/20 text-rgs-emerald border-rgs-emerald/30';
+        if (item.grade === 'B') badgeColorClass = 'bg-rgs-gold/20 text-rgs-gold border-rgs-gold/30';
+        if (item.grade === 'F') badgeColorClass = 'bg-rgs-crimson/20 text-rgs-crimson border-rgs-crimson/30';
+
+        return `
+          <tr class="hover:bg-rgs-slate/50">
+            <td class="p-2.5 font-mono text-[10px] text-gray-400">${item.timestamp}</td>
+            <td class="p-2.5 font-bold text-white">${item.oppName}</td>
+            <td class="p-2.5 text-gray-300">${item.listValue}</td>
+            <td class="p-2.5 text-rgs-gold font-bold">${item.discPct}</td>
+            <td class="p-2.5">
+              <span class="px-2 py-0.5 rounded font-bold border text-[10px] ${badgeColorClass}">${item.grade}</span>
+            </td>
+            <td class="p-2.5 font-semibold text-gray-400">${item.risk}</td>
+            <td class="p-2.5">
+              <button onclick="loadAuditItem('${item.id}')" title="Reload Evaluation Inputs" class="bg-rgs-accent hover:bg-rgs-teal hover:text-rgs-navy px-2 py-1 rounded transition text-[10px] text-white font-bold">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Reload
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function loadAuditItem(id) {
+      const item = auditLog.find(x => x.id === id);
+      if (!item) return;
+
+      document.getElementById('oppName').value = item.oppName;
+      document.getElementById('aeName').value = item.aeName;
+      document.getElementById('salesMotion').value = item.salesMotion;
+      document.getElementById('popRange').value = item.popRange;
+      document.getElementById('popDuration').value = item.popDuration;
+      document.getElementById('oppNotes').value = item.oppNotes;
+      document.getElementById('chkFundingSecured').checked = item.funding;
+      document.getElementById('chkNextStepLocked').checked = item.nextStep;
+      document.getElementById('chkSeWinApproved').checked = item.seWin;
+
+      manualPillars = [false, false, false, false, false, false];
+
+      const container = document.getElementById('skuLineContainer');
+      if (container) {
+        container.innerHTML = '';
+        if (item.skus && item.skus.length > 0) {
+          item.skus.forEach(s => addSkuLine(s.type, s.qty, s.listPrice, s.discPct));
+        } else {
+          addSkuLine();
+        }
+      }
+
+      recalculateSkuTotals();
+      switchTab('auditTab');
+      showToast(`Evaluation logs for "${item.oppName}" loaded successfully!`);
+    }
+
+    function clearAuditHistory() {
+      auditLog = [];
+      localStorage.removeItem('rgsAuditLog');
+      renderAuditLogTable();
+      showToast('All evaluation histories cleared!');
+    }
+
+    // Save API configs locally
+    function saveApiConfig() {
+      const apiKey = document.getElementById('geminiApiKey')?.value || '';
+      const model = document.getElementById('geminiModel')?.value || 'gemini-1.5-flash';
+      localStorage.setItem('geminiApiKey', apiKey);
+      localStorage.setItem('geminiModel', model);
+      showToast('API Configuration saved locally!');
+    }
+
+    // AI Chat operations
+    function useQuickPrompt(promptText) {
+      const input = document.getElementById('aiInput');
+      if (input) {
+        input.value = promptText;
+        input.focus();
+      }
+    }
+
+    async function sendAiMessage(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const input = document.getElementById('aiInput');
+      if (!input) return;
+      const query = input.value.trim();
+      if (!query) return;
+
+      appendChatMessage('User', query, false);
+      input.value = '';
+
+      // Append typing indicator
+      const chatHistory = document.getElementById('chatHistory');
+      const typingId = 'typing-' + Math.random().toString(36).substr(2, 4);
+      if (chatHistory) {
+        chatHistory.insertAdjacentHTML('beforeend', `
+          <div id="${typingId}" class="flex items-start space-x-3">
+            <div class="bg-rgs-teal text-rgs-navy font-bold p-2 rounded-full text-xs flex items-center justify-center w-8 h-8"><i class="fa-solid fa-robot"></i></div>
+            <div class="bg-rgs-slate p-3 rounded-lg border border-gray-700 max-w-xl space-y-1">
+              <p class="font-bold text-rgs-teal">RGS AI Coach:</p>
+              <p class="text-gray-400 italic flex items-center gap-2">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Coach is thinking...
+              </p>
+            </div>
+          </div>
+        `);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+
+      const apiKey = localStorage.getItem('geminiApiKey') || '';
+      const selectedModel = document.getElementById('geminiModel')?.value || 'gemini-1.5-flash';
+      let answer = '';
+
+      if (apiKey) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+        // Build rich historical context
+        const messageElements = document.querySelectorAll('.chat-msg-body');
+        let contextHistory = '';
+        messageElements.forEach(el => {
+          contextHistory += `${el.getAttribute('data-sender')}: ${el.innerText}\n`;
+        });
+
+        // Current opportunity context
+        const oppName = document.getElementById('oppName')?.value?.trim() || '(No active opportunity)';
+        const oppNotes = document.getElementById('oppNotes')?.value?.trim() || '(No active notes)';
+
+        const systemPrompt = `You are the Rancher Government Solutions (RGS) AI Executive Sales Coach.
+RGS specializes in highly secure, containerized Kubernetes solutions (RKE2, Rancher Manager, Harvester, NeuVector) for federal agencies and the DoD.
+You coach Account Executives on Sales Operations policies, standard discount caps, MEDDPICC criteria, and transition strategies to a "Mission-First" framework.
+
+Current Opportunity Context:
+Name: ${oppName}
+AE Notes: ${oppNotes}
+
+Provide helpful, strategic, actionable, and encouraging answers. Keep responses structured using safe, simple HTML elements (e.g. <strong>, <ul>, <li>) and avoid markdown blocks.`;
+
+        const payload = {
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${contextHistory}\nUser Query: ${query}`
+                }
+              ]
+            }
+          ],
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          }
+        };
+
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          answer = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        } catch (err) {
+          console.error("AI Coach fetch error", err);
+        }
+      }
+
+      // Remove typing indicator
+      document.getElementById(typingId)?.remove();
+
+      if (!answer) {
+        // Run Offline / Fallback Simulation Mode
+        answer = getOfflineCoachResponse(query);
+      }
+
+      appendChatMessage('RGS AI Coach', answer, true);
+    }
+
+    function appendChatMessage(sender, text, isAi = false) {
+      const chatHistory = document.getElementById('chatHistory');
+      if (!chatHistory) return;
+
+      const senderHtml = isAi ? `<p class="font-bold text-rgs-teal">${sender}:</p>` : `<p class="font-bold text-rgs-emerald">${sender}:</p>`;
+      const avatarHtml = isAi
+        ? `<div class="bg-rgs-teal text-rgs-navy font-bold p-2 rounded-full text-xs flex items-center justify-center w-8 h-8"><i class="fa-solid fa-robot"></i></div>`
+        : `<div class="bg-rgs-emerald text-rgs-navy font-bold p-2 rounded-full text-xs flex items-center justify-center w-8 h-8"><i class="fa-solid fa-user"></i></div>`;
+
+      chatHistory.insertAdjacentHTML('beforeend', `
+        <div class="flex items-start space-x-3">
+          ${avatarHtml}
+          <div class="bg-rgs-slate p-3 rounded-lg border border-gray-700 max-w-xl space-y-1">
+            ${senderHtml}
+            <div class="text-gray-200 leading-relaxed chat-msg-body" data-sender="${sender}">${text}</div>
+          </div>
+        </div>
+      `);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function getOfflineCoachResponse(query) {
+      const q = query.toLowerCase();
+      const oppName = document.getElementById('oppName')?.value?.trim() || 'active project';
+
+      if (q.includes('openshift') || q.includes('red hat') || q.includes('competitor')) {
+        return `
+          <p class="font-semibold text-white mb-1">RGS Competitive Positioning against Red Hat OpenShift:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Security footprint:</strong> RKE2 is built with Federal FIPS 140-2/3 validation directly inside. Red Hat OpenShift requires complex enterprise licensing and extensive configuration overhead to conform to STIG compliance.</li>
+            <li><strong>Management simplicity:</strong> Rancher Multi-Cluster Manager allows AEs to manage downstream vanilla clusters (EKS, GKE, AKS, or custom edge nodes) in a single unified dashboard, whereas Red Hat ACM restricts optimization.</li>
+            <li><strong>Mission-First Value Proposition:</strong> Pitch RGS as the dedicated, cleared federal team supporting their air-gapped IL6 command centers.</li>
+          </ul>
+        `;
+      }
+
+      if (q.includes('policy') || q.includes('discount') || q.includes('cap') || q.includes('approval')) {
+        return `
+          <p class="font-semibold text-white mb-1">RGS Policy & Discount Authority Guidelines:</p>
+          <p class="mb-2">Standard discount caps are strictly defined inside the <strong>RGS Operations Policy Matrix</strong> (Tab 3):</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Cloud Native:</strong> Standard caps range from 0% (Direct) to 28% (Reseller Sell-With DR2) or 32% (Disti Sell-With DR2).</li>
+            <li><strong>Approval Authority:</strong> Discounts exceeding standard caps, direct motion deals, or period of performances under 12 months require <strong>VP of Sales</strong> approval. Backdated PoPs require VP of Operations consent.</li>
+          </ul>
+        `;
+      }
+
+      if (q.includes('/coach') || q.includes('mission') || q.includes('script') || q.includes('pitch')) {
+        return `
+          <p class="font-semibold text-white mb-1">Mission-First Framework Pivot Script (Project: <strong class="text-white">${oppName}</strong>):</p>
+          <div class="p-2 bg-rgs-navy rounded border border-gray-700 text-xs italic mt-1 text-gray-300">
+            "Colonel, we recognize that procurement is a means, but mission delivery is the end. We aren't simply providing container orchestration licenses for ${oppName}; we are ensuring your pilots have real-time FIPS-validated telemetry data at the tactical edge. Let's align on securing your multi-year software baseline to prevent operational gaps."
+          </div>
+        `;
+      }
+
+      if (q.includes('/meddpicc') || q.includes('pillar') || q.includes('qualify')) {
+        return `
+          <p class="font-semibold text-white mb-1">MEDDPICC Qualification Coaching:</p>
+          <p>Always seek to satisfy at least 3 out of 6 justification pillars for standard deal progression:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Give-and-Take:</strong> Concessions should yield a multi-year baseline or base + options agreement.</li>
+            <li><strong>Cost to Serve:</strong> Ensure difficult air-gapped IL5/IL6 deployment costs are mitigated by attaching paid Consulting/ProServ SOWs.</li>
+            <li><strong>Consequence of "No":</strong> Quantify what occurs if they do not purchase (e.g. security certification revocation, loss of production footprint).</li>
+          </ul>
+        `;
+      }
+
+      return `
+        <p>I appreciate your question. Here is some general RGS deal coaching:</p>
+        <p class="mt-1">Ensure your active opportunity (<strong>${oppName}</strong>) contains detailed architectural notes, clear competitor threats, and funding confirmations before submitting. If you want specific federal positioning, try asking about <strong>"OpenShift"</strong>, <strong>"RGS policy caps"</strong>, or typing <strong>"/coach"</strong> to render a customized sales script.</p>
+      `;
+    }
+
+    // AI Note Auto-Extraction Mock
+    function aiAutoExtractNotes() {
+      const notesField = document.getElementById('oppNotes');
+      if (!notesField) return;
+
+      const mockTranscripts = [
+        `Meeting Transcript with USAF Lead Sarah Jenkins:\nSarah: "We have pilot funding secured for $50k. We need 3 hosts running Harvester at FIPS 140-3 level. Our next step is a technical review meeting on October 28."\nSarah: "Red Hat is bidding OpenShift, but we prefer Rancher. Can we get a discount to fit our pilot budget?"`,
+        `Email Exchange USN NAVSEA PMA271:\nAE: "Brian Durden verified the IL6 air-gapped BOM. What are the next steps?"\nKO: "We will hold an RFP review on Oct 28. To secure base + 2 option years we need 28% discount."`,
+        `Internal Slack:\n"DHS CBP AirMarine needs a 3-month co-term SLES extension. Their PoP start date was backdated to 30 days ago. The 74% discount is required due to exact 3-month contract duration proration."`
+      ];
+
+      const chosen = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+      notesField.value = chosen;
+      showToast("AI synthesized opportunity notes auto-filled!");
+      recalculateSkuTotals();
+    }
+
+    window.onload = function() {
+      // Load API keys from local storage
+      const savedKey = localStorage.getItem('geminiApiKey');
+      const savedModel = localStorage.getItem('geminiModel');
+      if (savedKey && document.getElementById('geminiApiKey')) {
+        document.getElementById('geminiApiKey').value = savedKey;
+      }
+      if (savedModel && document.getElementById('geminiModel')) {
+        document.getElementById('geminiModel').value = savedModel;
+      }
+
+      initScopeChecklist();
+      renderPolicyMatrix();
+      initAuditLog();
+      clearDealForm();
+    };
+  </script>
+</body>
+</html>
